@@ -79,6 +79,17 @@ The agent demos will ask an LLM (via OpenRouter) whether it should answer direct
    - **Change model** → swap the string in `@model('provider:model')`.
    - **Replace LLM backend** → adjust the fetch endpoint & headers.
 
+## Prompt Templates
+
+The framework ships with a tiny `PromptEngine` offering default templates like
+`greeting`. Markdown files under `src/core/prompts/system` are automatically
+loaded as templates (e.g. `agent.md`, `retry.md`). Pass an object to the
+constructor to override any built-in template or call `register()` to add new
+ones. You can also drop a new `.md` file in that directory and call
+`loadDir()` to make it available. Registering an existing key throws an error
+saying `already exists — use overwrite()`. To force replacement, use
+`overwrite()`.
+
 ---
 
 ## 4 . Design Highlights
