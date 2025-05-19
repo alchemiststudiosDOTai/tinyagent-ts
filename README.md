@@ -18,7 +18,7 @@ src/
 
 ## 2 . Quick Start
 
-First, ensure you have Node.js and npm installed.
+First, please make sure you have Node.js and npm installed.
 
 ```bash
 # 1 . Clone the repository and install dependencies
