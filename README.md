@@ -11,7 +11,8 @@ src/
 ├── decorators.ts   # @model and @tool decorators + metadata registry
 ├── agent.ts        # base Agent class • LLM orchestration • tool runtime
 ├── index.ts        # demo CalcAgent with two math tools
-└── multiplierAgent.ts # demo MultiplierAgent with one math tool
+├── multiplierAgent.ts # demo MultiplierAgent with one math tool
+└── triageAgent.ts  # simple agent listing tools for manual selection
 ```
 
 ---
@@ -38,9 +39,12 @@ npx ts-node src/index.ts
 
 # 4 . Run the MultiplierAgent demo
 npx ts-node src/multiplierAgent.ts
+
+# 5 . Try the TriageAgent
+npx ts-node src/triageAgent.ts
 ```
 
-The agent demos will ask an LLM (via OpenRouter) whether it should answer directly or call one of its local tools, then print the final reply. The `multiplierAgent.ts` specifically uses `dotenv` to load the key from the `.env` file.
+The agent demos will ask an LLM (via OpenRouter) whether it should answer directly or call one of its local tools, then print the final reply. The `multiplierAgent.ts` specifically uses `dotenv` to load the key from the `.env` file. The `TriageAgent` simply lists your available tools and prompts you to pick one.
 
 ---
 
