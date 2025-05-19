@@ -76,3 +76,4 @@ After completing each major refactoring phase (as defined in [`logistics/plans/r
 - **Status:** **PASS**
 - **Observations:** New prompt loader functions handled markdown files from
   `src/core/prompts/system` without mutating built-ins.
+

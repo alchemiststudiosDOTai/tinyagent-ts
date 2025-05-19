@@ -1,95 +1,105 @@
+// prompt_engine.ts (cleaned — new branch wins)
+// -----------------------------------------------------
+// Lightweight prompt‑template engine with file‑based loading support.
+// • Ships with default templates (markdown files + hard‑coded greeting)
+// • Lets callers override / extend in code or via markdown files & folders
+// • Designed for QA‑agent workflows, no external dependencies beyond Node fs/path
+
 import fs from "fs";
 import path from "path";
 
 export type TemplateData = Record<string, unknown>;
-export type TemplateFn = (data?: TemplateData) => string;
+export type TemplateFn   = (data?: TemplateData) => string;
+export type TemplateRegistry = Record<string, TemplateFn>;
 
-function loadTemplatesFromDir(dir: string): Record<string, TemplateFn> {
-  const result: Record<string, TemplateFn> = {};
-  if (!fs.existsSync(dir)) return result;
-  for (const file of fs.readdirSync(dir)) {
-    if (file.endsWith(".md")) {
-      const key = path.basename(file, ".md");
-      const content = fs.readFileSync(path.join(dir, file), "utf-8");
-      result[key] = () => content;
-    }
+// -----------------------------------------------------
+// Helper: load every .md file in a directory as a template
+// -----------------------------------------------------
+function loadTemplatesFromDir(dir: string): TemplateRegistry {
+  const templates: TemplateRegistry = {};
+  if (!fs.existsSync(dir)) return templates;
+
+  for (const fileName of fs.readdirSync(dir)) {
+    if (!fileName.endsWith(".md")) continue;
+    const key = path.basename(fileName, ".md");
+    const content = fs.readFileSync(path.join(dir, fileName), "utf-8");
+    templates[key] = () => content;
   }
-  return result;
+  return templates;
 }
 
+// Core system prompt directory (relative to this file)
 const systemPromptDir = path.join(__dirname, "core", "prompts", "system");
 
-export const defaultTemplates: Record<string, TemplateFn> = {
+// -----------------------------------------------------
+// Built‑in template registry (markdown + hardcoded)
+// -----------------------------------------------------
+export const defaultTemplates: TemplateRegistry = {
   ...loadTemplatesFromDir(systemPromptDir),
-  greeting: (data?: TemplateData): string => {
-    const user = data?.user ?? "friend";
-    return `\u{1F44B} Hey ${user}, how can I help?`;
-  },
+  greeting: ({ user = "friend" } = {}): string => `👋 Hey ${user}, how can I help?`,
 };
 
-/**
- * Simple string template engine used by the examples.
- * Built-in templates can be overridden or extended.
- */
+// -----------------------------------------------------
+// PromptEngine class
+// -----------------------------------------------------
 export class PromptEngine {
-  private templates: Record<string, TemplateFn>;
+  private templates: TemplateRegistry;
 
-  constructor(overrides: Record<string, TemplateFn> = {}) {
-    // Merge without mutating the defaultTemplates constant
+  constructor(overrides: Partial<TemplateRegistry> = {}) {
+    // User overrides win, but defaultTemplates stay untouched
     this.templates = { ...defaultTemplates, ...overrides };
   }
 
-  /**
-   * Render a template by name using the provided variables.
-   * @throws Error when the key does not exist.
-   */
+  /** Render a template by key */
   render(name: string, data?: TemplateData): string {
     const tpl = this.templates[name];
-    if (!tpl) {
-      throw new Error(`Prompt template ${name} not found`);
-    }
+    if (!tpl) throw new Error(`Prompt template “${name}” not found`);
     return tpl(data);
   }
 
-  /**
-   * Register a brand new template. Fails if the key already exists.
-   */
+  /** Register brand‑new template (fails if key exists) */
   register(name: string, template: TemplateFn): void {
-    if (name in this.templates) {
-      throw new Error("already exists — use overwrite()");
-    }
+    if (name in this.templates) throw new Error("already exists — use overwrite()");
     this.templates[name] = template;
   }
 
-  /**
-   * Register a template from a markdown file.
-   */
+  /** Overwrite existing or create new template unconditionally */
+  overwrite(name: string, template: TemplateFn): void {
+    this.templates[name] = template;
+  }
+
+  // -------------------------------------------------
+  // File helpers (Markdown‑driven workflows)
+  // -------------------------------------------------
+
+  /** Register template from a markdown file (fails if key exists) */
   registerFromFile(name: string, filePath: string): void {
     const content = fs.readFileSync(filePath, "utf-8");
     this.register(name, () => content);
   }
 
-  /**
-   * Load all markdown files in a directory as templates.
-   */
+  /** Load every .md file in dir as new templates (fails on duplicates) */
   loadDir(dir: string): void {
-    Object.entries(loadTemplatesFromDir(dir)).forEach(([k, v]) => {
-      if (k in this.templates) {
-        throw new Error(`Template ${k} already exists — use overwrite()`);
-      }
+    const loaded = loadTemplatesFromDir(dir);
+    for (const [k, v] of Object.entries(loaded)) {
+      if (k in this.templates) throw new Error(`Template ${k} already exists — use overwrite()`);
       this.templates[k] = v;
-    });
+    }
   }
 
-  /**
-   * Overwrite or create a template unconditionally.
-   */
-  overwrite(name: string, template: TemplateFn): void {
-    this.templates[name] = template;
-  }
-
+  /** Overwrite (or create) template from file */
   overwriteFromFile(name: string, filePath: string): void {
     const content = fs.readFileSync(filePath, "utf-8");
-    this.templates[name] = () => content;
+    this.overwrite(name, () => content);
   }
 }
+
+// -----------------------------------------------------
+// Usage example (delete or wrap in tests)
+// -----------------------------------------------------
+/*
+const engine = new PromptEngine();
+console.log(engine.render("greeting", { user: "Fabian" }));
+engine.registerFromFile("intro", path.join(__dirname, "prompts", "intro.md"));
+console.log(engine.render("intro"));
+*/
