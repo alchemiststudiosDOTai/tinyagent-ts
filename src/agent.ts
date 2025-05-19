@@ -55,19 +55,21 @@ interface LLMMessage {
 export abstract class Agent<I = string, O = string> {
   /** The API key for OpenRouter, loaded from environment variables. */
   private readonly apiKey: string;
+  private readonly customSystemPrompt?: string;
 
   /**
    * Initializes a new instance of the Agent.
    * It requires the `OPENROUTER_API_KEY` environment variable to be set.
    * @throws Error if `OPENROUTER_API_KEY` is not found in the environment variables.
    */
-  constructor() {
+  constructor(systemPrompt?: string) {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       // TODO: Replace with AgentInitializationError
       throw new Error("OPENROUTER_API_KEY environment variable is required");
     }
     this.apiKey = apiKey;
+    this.customSystemPrompt = systemPrompt;
   }
 
   /**
@@ -212,10 +214,14 @@ export abstract class Agent<I = string, O = string> {
       .map((t) => `- ${t.meta.name}: ${t.meta.description}`)
       .join("\n");
 
-    const systemPrompt =
+    const defaultPrompt =
       `You are an AI agent. You can use the following tools if needed:\n${toolCatalog}\n` +
       `To use a tool, respond ONLY with a single JSON object with "tool" and "args" keys, e.g., {"tool":"tool_name","args":{"param1":"value1"}}.\n` +
       `Otherwise, respond directly to the user.`;
+    const systemPrompt = (this.customSystemPrompt ?? defaultPrompt).replace(
+      "{{tools}}",
+      toolCatalog,
+    );
 
     const messages: LLMMessage[] = [
       { role: "system", content: systemPrompt },

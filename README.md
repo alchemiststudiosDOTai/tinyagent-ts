@@ -82,11 +82,13 @@ The agent demos will ask an LLM (via OpenRouter) whether it should answer direct
 ## Prompt Templates
 
 The framework ships with a tiny `PromptEngine` offering default templates like
-`greeting`. Pass an object to the constructor to override any built-in template
-or call `register()` to add new ones. Registering an existing key throws an
-error saying `already exists — use overwrite()`. To force replacement, use
-`overwrite()`. Rendering an unknown key raises `Prompt template <name> not
-found`.
+`greeting`. Markdown files under `src/core/prompts/system` are automatically
+loaded as templates (e.g. `agent.md`, `retry.md`). Pass an object to the
+constructor to override any built-in template or call `register()` to add new
+ones. You can also drop a new `.md` file in that directory and call
+`loadDir()` to make it available. Registering an existing key throws an error
+saying `already exists — use overwrite()`. To force replacement, use
+`overwrite()`.
 
 ---
 

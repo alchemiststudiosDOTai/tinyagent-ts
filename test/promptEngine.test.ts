@@ -51,7 +51,6 @@ async function run(): Promise<void> {
     "Default templates remain unchanged",
   );
 
-  console.log("--- All PromptEngine tests passed ---");
-}
+
 
 run();
