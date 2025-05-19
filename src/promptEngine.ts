@@ -15,6 +15,12 @@ export type TemplateRegistry = Record<string, TemplateFn>;
 // -----------------------------------------------------
 // Helper: load every .md file in a directory as a template
 // -----------------------------------------------------
+function compileTemplate(content: string): TemplateFn {
+  return (data: TemplateData = {}): string =>
+    content.replace(/{{\s*(\w+)\s*}}/g, (_, k) =>
+      k in data ? String(data[k]) : "");
+}
+
 function loadTemplatesFromDir(dir: string): TemplateRegistry {
   const templates: TemplateRegistry = {};
   if (!fs.existsSync(dir)) return templates;
@@ -23,7 +29,7 @@ function loadTemplatesFromDir(dir: string): TemplateRegistry {
     if (!fileName.endsWith(".md")) continue;
     const key = path.basename(fileName, ".md");
     const content = fs.readFileSync(path.join(dir, fileName), "utf-8");
-    templates[key] = () => content;
+    templates[key] = compileTemplate(content);
   }
   return templates;
 }
@@ -45,9 +51,13 @@ export const defaultTemplates: TemplateRegistry = {
 export class PromptEngine {
   private templates: TemplateRegistry;
 
-  constructor(overrides: Partial<TemplateRegistry> = {}) {
+  constructor(
+    overrides: Partial<TemplateRegistry> = {},
+    fileOverrides: Record<string, string> = {},
+  ) {
     // User overrides win, but defaultTemplates stay untouched
     this.templates = { ...defaultTemplates, ...overrides };
+    this.applyFileOverrides(fileOverrides);
   }
 
   /** Render a template by key */
@@ -75,7 +85,7 @@ export class PromptEngine {
   /** Register template from a markdown file (fails if key exists) */
   registerFromFile(name: string, filePath: string): void {
     const content = fs.readFileSync(filePath, "utf-8");
-    this.register(name, () => content);
+    this.register(name, compileTemplate(content));
   }
 
   /** Load every .md file in dir as new templates (fails on duplicates) */
@@ -90,7 +100,15 @@ export class PromptEngine {
   /** Overwrite (or create) template from file */
   overwriteFromFile(name: string, filePath: string): void {
     const content = fs.readFileSync(filePath, "utf-8");
-    this.overwrite(name, () => content);
+    this.overwrite(name, compileTemplate(content));
+  }
+
+  /** Apply multiple file overrides at once */
+  applyFileOverrides(map: Record<string, string>): void {
+    for (const [name, file] of Object.entries(map)) {
+      const content = fs.readFileSync(file, "utf-8");
+      this.overwrite(name, compileTemplate(content));
+    }
   }
 }
 
