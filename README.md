@@ -12,6 +12,7 @@ src/
 ├── agent.ts        # base Agent class • LLM orchestration • tool runtime
 ├── index.ts        # demo CalcAgent with two math tools
 ├── multiplierAgent.ts # demo MultiplierAgent with one math tool
+├── final-answer.tool.ts # always-run tool returning the agent's answer
 └── triageAgent.ts  # simple agent listing tools for manual selection
 ```
 
