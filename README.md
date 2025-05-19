@@ -88,7 +88,12 @@ constructor to override any built-in template or call `register()` to add new
 ones. You can also drop a new `.md` file in that directory and call
 `loadDir()` to make it available. Registering an existing key throws an error
 saying `already exists — use overwrite()`. To force replacement, use
-`overwrite()`.
+`overwrite()`. You can also point to a specific file when constructing a
+`PromptEngine` to override a built-in template:
+
+```ts
+const engine = new PromptEngine({}, { agent: '/path/to/my.md' });
+```
 
 ---
 

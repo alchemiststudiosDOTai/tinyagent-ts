@@ -2,6 +2,7 @@
 import "reflect-metadata";
 import { ZodError } from "zod"; // Removed unused 'z' and 'ZodSchema'
 import { META_KEYS, ToolMetadata } from "./decorators";
+import { PromptEngine } from "./promptEngine";
 
 /**
  * Represents a tool's runtime information, including its metadata and
@@ -56,13 +57,16 @@ export abstract class Agent<I = string, O = string> {
   /** The API key for OpenRouter, loaded from environment variables. */
   private readonly apiKey: string;
   private readonly customSystemPrompt?: string;
+  private readonly promptEngine: PromptEngine;
 
   /**
    * Initializes a new instance of the Agent.
    * It requires the `OPENROUTER_API_KEY` environment variable to be set.
    * @throws Error if `OPENROUTER_API_KEY` is not found in the environment variables.
    */
-  constructor(systemPrompt?: string) {
+  constructor(options: { systemPrompt?: string; systemPromptFile?: string } = {}) {
+    const { systemPrompt, systemPromptFile } = options;
+
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       // TODO: Replace with AgentInitializationError
@@ -70,6 +74,7 @@ export abstract class Agent<I = string, O = string> {
     }
     this.apiKey = apiKey;
     this.customSystemPrompt = systemPrompt;
+    this.promptEngine = new PromptEngine({}, systemPromptFile ? { agent: systemPromptFile } : {});
   }
 
   /**
@@ -214,14 +219,8 @@ export abstract class Agent<I = string, O = string> {
       .map((t) => `- ${t.meta.name}: ${t.meta.description}`)
       .join("\n");
 
-    const defaultPrompt =
-      `You are an AI agent. You can use the following tools if needed:\n${toolCatalog}\n` +
-      `To use a tool, respond ONLY with a single JSON object with "tool" and "args" keys, e.g., {"tool":"tool_name","args":{"param1":"value1"}}.\n` +
-      `Otherwise, respond directly to the user.`;
-    const systemPrompt = (this.customSystemPrompt ?? defaultPrompt).replace(
-      "{{tools}}",
-      toolCatalog,
-    );
+    const defaultPrompt = this.promptEngine.render("agent", { tools: toolCatalog });
+    const systemPrompt = this.customSystemPrompt ?? defaultPrompt;
 
     const messages: LLMMessage[] = [
       { role: "system", content: systemPrompt },
