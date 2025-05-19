@@ -79,6 +79,15 @@ The agent demos will ask an LLM (via OpenRouter) whether it should answer direct
    - **Change model** → swap the string in `@model('provider:model')`.
    - **Replace LLM backend** → adjust the fetch endpoint & headers.
 
+## Prompt Templates
+
+The framework ships with a tiny `PromptEngine` offering default templates like
+`greeting`. Pass an object to the constructor to override any built-in template
+or call `register()` to add new ones. Registering an existing key throws an
+error saying `already exists — use overwrite()`. To force replacement, use
+`overwrite()`. Rendering an unknown key raises `Prompt template <name> not
+found`.
+
 ---
 
 ## 4 . Design Highlights
