@@ -43,6 +43,9 @@ npx ts-node src/multiplierAgent.ts
 
 # 5 . Try the TriageAgent
 npx ts-node src/triageAgent.ts
+
+# 6 . ReAct JSON example
+npx ts-node src/examples/react.ts
 ```
 
 The agent demos will ask an LLM (via OpenRouter) whether it should answer directly or call one of its local tools, then print the final reply. The `multiplierAgent.ts` specifically uses `dotenv` to load the key from the `.env` file. The `TriageAgent` simply lists your available tools and prompts you to pick one.
@@ -88,13 +91,13 @@ flowchart TB
         Generate -->|Parse output to extract code action| Execute
         Execute -->|No call to 'final_answer' tool => Store execution logs in memory and keep running| Memory
     end
-    
+
     Execute -->|Call to 'final_answer' tool| Answer
 
     %% Styling
     classDef default fill:#d4b702,stroke:#8b7701,color:#ffffff
     classDef io fill:#4a5568,stroke:#2d3748,color:#ffffff
-    
+
     class Task,Answer io
 ```
 
@@ -130,6 +133,19 @@ const engine = new PromptEngine({}, { agent: '/path/to/my.md' });
 | Zod schemas on tools            | Strong arg validation and IDE‑friendly typings.             |
 | Two‑turn tool loop              | Lets the model _act → observe → refine_ like ReAct pattern. |
 | Single file per concern         | Keeps cognitive load minimal; ideal teaching skeleton.      |
+
+---
+
+## ReAct Implementation
+
+TinyAgent‑TS now mirrors the strict Thought→Action→Observation loop from [the ReAct paper](https://arxiv.org/abs/2210.03629). Key pieces:
+
+1. **Prompt & reasoning** – a single `react` prompt enforces explicit `Thought`, `Action`, and `Observation` fields.
+2. **Typed objects** – `ThoughtStep`, `ActionStep`, and `ObservationStep` interfaces keep memory structured.
+3. **Scratchpad / memory** – the `Scratchpad` class renders steps back into chat messages for the model.
+4. **Execution loop** – `MultiStepAgent` cycles through the scratchpad until a `final_answer` action is returned.
+5. **Debug & transparency** – pass `--trace` (or `trace: true`) to log each `T/A/O` triple as it happens.
+6. **Docs & example** – see `src/examples/react.ts` for a minimal JSON‑tool agent using these pieces.
 
 ---
 

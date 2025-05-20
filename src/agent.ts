@@ -40,7 +40,7 @@ interface OpenRouterResponse {
  * Defines the structure for messages sent to the LLM.
  * @internal
  */
-interface LLMMessage {
+export interface LLMMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
