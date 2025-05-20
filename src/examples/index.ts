@@ -1,7 +1,9 @@
 import { runMathAgentDemo } from "./math";
+import { runOneCallDemo } from "./onecall";
 
 const examples: Record<string, () => Promise<void>> = {
   math: runMathAgentDemo,
+  onecall: runOneCallDemo,
 };
 
 async function main() {
