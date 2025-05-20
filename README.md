@@ -73,6 +73,31 @@ The agent demos will ask an LLM (via OpenRouter) whether it should answer direct
 
    4. Otherwise, return the text reply directly.
 
+```mermaid
+flowchart TB
+    Task[User Task]
+    Memory[agent.memory]
+    Generate[Generate from agent.model]
+    Execute[Execute Code action - Tool calls are written as functions]
+    Answer[Return the argument given to 'final_answer']
+
+    Task -->|Add task to agent.memory| Memory
+
+    subgraph ReAct[ReAct loop]
+        Memory -->|Memory as chat messages| Generate
+        Generate -->|Parse output to extract code action| Execute
+        Execute -->|No call to 'final_answer' tool => Store execution logs in memory and keep running| Memory
+    end
+    
+    Execute -->|Call to 'final_answer' tool| Answer
+
+    %% Styling
+    classDef default fill:#d4b702,stroke:#8b7701,color:#ffffff
+    classDef io fill:#4a5568,stroke:#2d3748,color:#ffffff
+    
+    class Task,Answer io
+```
+
 3. **Extensibility**
 
    - **Add tools** → just decorate another method.

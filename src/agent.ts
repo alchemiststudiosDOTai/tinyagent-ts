@@ -3,6 +3,7 @@ import "reflect-metadata";
 import { ZodError } from "zod"; // Removed unused 'z' and 'ZodSchema'
 import { META_KEYS, ToolMetadata } from "./decorators";
 import { PromptEngine } from "./promptEngine";
+import { FinalAnswerTool } from "./final-answer.tool";
 
 /**
  * Represents a tool's runtime information, including its metadata and
@@ -58,6 +59,8 @@ export abstract class Agent<I = string, O = string> {
   private readonly apiKey: string;
   private readonly customSystemPrompt?: string;
   protected readonly promptEngine: PromptEngine;
+  /** Conversation memory for ReAct loop */
+  protected readonly memory: LLMMessage[] = [];
 
   /**
    * Initializes a new instance of the Agent.
@@ -214,7 +217,6 @@ export abstract class Agent<I = string, O = string> {
   async run(input: I): Promise<O> {
     const modelName = this.getModelName();
     const tools = this.buildToolRegistry();
-    // Simplified tool catalog for the prompt
     const toolCatalog = Object.values(tools)
       .map((t) => `- ${t.meta.name}: ${t.meta.description}`)
       .join("\n");
@@ -222,104 +224,66 @@ export abstract class Agent<I = string, O = string> {
     const defaultPrompt = this.promptEngine.render("agent", { tools: toolCatalog });
     const systemPrompt = this.customSystemPrompt ?? defaultPrompt;
 
-    const messages: LLMMessage[] = [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: String(input) }, // Ensure input is stringified
-    ];
-
-    const responseBody = await this.makeOpenRouterRequest(messages, modelName);
-    const reply = responseBody.choices[0]?.message?.content?.trim() ?? "";
-
-    // Check if the LLM's reply is likely a JSON tool call
-    if (
-      reply.startsWith("{") &&
-      reply.endsWith("}") &&
-      reply.includes('"tool"')
-    ) {
-      try {
-        const parsedJson = JSON.parse(reply);
-        // Basic validation of the parsed JSON structure
-        if (
-          typeof parsedJson.tool !== "string" ||
-          typeof parsedJson.args !== "object" ||
-          parsedJson.args === null
-        ) {
-          throw new Error("Invalid tool call format in LLM response.");
-        }
-        const { tool: toolName, args: toolArgs } = parsedJson as {
-          tool: string;
-          args: Record<string, unknown>;
-        };
-
-        const selectedTool = tools[toolName];
-
-        if (!selectedTool) {
-          // TODO: Replace with ToolNotFoundError
-          const errorMsg = `Error: LLM requested unknown tool "${toolName}". Available tools: ${Object.keys(tools).join(", ")}`;
-          console.error(errorMsg);
-          // Fallback: return an error message or the raw reply.
-          // Consider sending this error back to the LLM in a future iteration.
-          return `Error: Attempted to use an unknown tool: ${toolName}.` as unknown as O;
-        }
-
-        const toolResult = await selectedTool.call(toolArgs);
-        // Send tool result back to LLM for a final, polished answer
-        const finalAnswer = await this.followUpWithToolResult(
-          toolResult,
-          messages,
-          reply,
-        );
-        return finalAnswer as O; // Assume finalAnswer conforms to O
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error(
-          "Tool execution or parsing error:",
-          message,
-          "\nLLM Reply:",
-          reply,
-        );
-        // Fallback to returning the LLM's raw reply if tool execution fails
-        return reply as unknown as O;
-      }
+    if (this.memory.length === 0) {
+      this.memory.push({ role: "system", content: systemPrompt });
     }
-    // If not a tool call, return the LLM's reply directly
-    return reply as unknown as O;
-  }
 
-  /**
-   * Sends the result of a tool execution back to the LLM for a final response.
-   * @param toolResult - The result obtained from executing a tool.
-   * @param previousMessages - The history of messages in the current conversation.
-   * @param llmToolCallResponse - The raw JSON string response from the LLM that initiated the tool call.
-   * @returns A promise that resolves with the LLM's final, polished answer.
-   * @internal
-   */
-  private async followUpWithToolResult(
-    toolResult: unknown,
-    previousMessages: LLMMessage[],
-    llmToolCallResponse: string,
-  ): Promise<string> {
-    const messages: LLMMessage[] = [
-      ...previousMessages,
-      { role: "assistant", content: llmToolCallResponse }, // Include the LLM's decision to call the tool
-      // NOTE: This format for providing tool results might need adjustment based on
-      // the specific LLM provider's requirements (e.g., OpenAI uses a dedicated 'tool' role).
-      // Using a simple TOOL_RESULT prefix for now.
-      {
-        role: "assistant",
-        content: `TOOL_RESULT: ${JSON.stringify(toolResult)}`,
-      },
-      {
-        role: "user",
-        content:
-          "Based on the tool result, please provide the final answer to my original query.",
-      },
-    ];
+    this.memory.push({ role: "user", content: String(input) });
 
-    const responseBody = await this.makeOpenRouterRequest(
-      messages,
-      this.getModelName(),
-    );
-    return responseBody.choices[0]?.message?.content?.trim() ?? "";
+    const finalTool = new FinalAnswerTool();
+    const maxSteps = 5;
+
+    for (let step = 0; step < maxSteps; step++) {
+      const responseBody = await this.makeOpenRouterRequest(this.memory, modelName);
+      const reply = responseBody.choices[0]?.message?.content?.trim() ?? "";
+      this.memory.push({ role: "assistant", content: reply });
+
+      if (
+        reply.startsWith("{") &&
+        reply.endsWith("}") &&
+        reply.includes('"tool"')
+      ) {
+        try {
+          const parsedJson = JSON.parse(reply);
+          if (
+            typeof parsedJson.tool !== "string" ||
+            typeof parsedJson.args !== "object" ||
+            parsedJson.args === null
+          ) {
+            throw new Error("Invalid tool call format in LLM response.");
+          }
+          const { tool: toolName, args: toolArgs } = parsedJson as {
+            tool: string;
+            args: Record<string, unknown>;
+          };
+
+          if (toolName === finalTool.name) {
+            const answer = await finalTool.forward(toolArgs);
+            return answer as O;
+          }
+
+          const selectedTool = tools[toolName];
+
+          if (!selectedTool) {
+            const errorMsg = `Error: LLM requested unknown tool "${toolName}". Available tools: ${Object.keys(tools).join(", ")}`;
+            this.memory.push({ role: "assistant", content: errorMsg });
+            return errorMsg as unknown as O;
+          }
+
+          const toolResult = await selectedTool.call(toolArgs);
+          this.memory.push({ role: "assistant", content: `TOOL_RESULT: ${JSON.stringify(toolResult)}` });
+          continue; // Next loop iteration with updated memory
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.memory.push({ role: "assistant", content: `ERROR: ${message}` });
+          return reply as unknown as O;
+        }
+      }
+
+      return reply as unknown as O;
+    }
+
+    // Step limit reached
+    return this.memory[this.memory.length - 1]?.content as unknown as O;
   }
 }
