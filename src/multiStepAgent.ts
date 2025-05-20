@@ -74,11 +74,12 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
       try {
         if (action.mode === 'json') {
           if (action.tool === finalTool.name) {
-            observation = String(await finalTool.forward(action.args));
+            const finalAnswer = await finalTool.forward(action.args);
+            observation = typeof finalAnswer === 'object' ? JSON.stringify(finalAnswer) : String(finalAnswer);
             this.scratchpad.addObservation(observation);
             this.log(undefined, undefined, observation);
             if (this.onStep) this.onStep(this.scratchpad);
-            return observation as unknown as O;
+            return action.args.answer as unknown as O;
           }
           const tool = tools[action.tool];
           if (!tool) {

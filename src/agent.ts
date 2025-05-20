@@ -57,7 +57,7 @@ export interface LLMMessage {
 export abstract class Agent<I = string, O = string> {
   /** The API key for OpenRouter, loaded from environment variables. */
   private readonly apiKey: string;
-  private readonly customSystemPrompt?: string;
+  protected readonly customSystemPrompt?: string;
   protected readonly promptEngine: PromptEngine;
   /** Conversation memory for ReAct loop */
   protected readonly memory: LLMMessage[] = [];
@@ -87,7 +87,7 @@ export abstract class Agent<I = string, O = string> {
    * @throws Error if the `@model` decorator is missing on the agent class.
    * @internal
    */
-  private getModelName(): string {
+  protected getModelName(): string {
     const id: string | undefined = Reflect.getMetadata(
       META_KEYS.MODEL,
       this.constructor,
@@ -105,7 +105,7 @@ export abstract class Agent<I = string, O = string> {
    * @returns A record mapping tool names to their `ToolHandle` (metadata and call function).
    * @internal
    */
-  private buildToolRegistry(): Record<string, ToolHandle> {
+  protected buildToolRegistry(): Record<string, ToolHandle> {
     const metaList: ToolMetadata[] =
       Reflect.getMetadata(META_KEYS.TOOLS, this.constructor) || [];
     return Object.fromEntries(
@@ -148,7 +148,7 @@ export abstract class Agent<I = string, O = string> {
    * @throws Error if the API request fails or returns an error status.
    * @internal
    */
-  private async makeOpenRouterRequest(
+  protected async makeOpenRouterRequest(
     messages: LLMMessage[],
     model: string,
   ): Promise<OpenRouterResponse> {

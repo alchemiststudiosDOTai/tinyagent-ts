@@ -4,7 +4,6 @@ import {
   JsonAction,
   ObservationStep,
   ScratchStep,
-  TaskStep,
   ThoughtStep,
 } from './steps';
 import { LLMMessage } from '../agent';
@@ -40,6 +39,14 @@ export class Scratchpad {
       if (s.type === 'observation') return s.text;
     }
     return undefined;
+  }
+
+  /**
+   * Get all steps in the scratchpad
+   * @returns Array of all steps
+   */
+  getSteps(): ScratchStep[] {
+    return [...this.steps];
   }
 
   toMessages(systemPrompt: string): LLMMessage[] {
@@ -83,6 +90,46 @@ export function parseThoughtAction(text: string): {
   const actionPart = text.split(/\nAction:/s)[1] ?? '';
   const trimmed = actionPart.trim();
 
+  // First, try to parse as JSON directly
+  try {
+    // Check if the trimmed text is a JSON object
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      const parsed = JSON.parse(trimmed);
+      if (typeof parsed.tool === 'string' && typeof parsed.args === 'object') {
+        const action: JsonAction = {
+          type: 'action',
+          mode: 'json',
+          tool: parsed.tool,
+          args: parsed.args,
+        };
+        return { thought, action };
+      }
+    }
+  } catch {
+    // If JSON parsing fails, continue to other formats
+  }
+
+  // Try to extract JSON from the text (may be embedded in other text)
+  const jsonMatch = trimmed.match(/{\s*"tool"\s*:\s*"([^"]+)".*}/);
+  if (jsonMatch) {
+    try {
+      const jsonStr = jsonMatch[0];
+      const parsed = JSON.parse(jsonStr);
+      if (typeof parsed.tool === 'string' && typeof parsed.args === 'object') {
+        const action: JsonAction = {
+          type: 'action',
+          mode: 'json',
+          tool: parsed.tool,
+          args: parsed.args,
+        };
+        return { thought, action };
+      }
+    } catch {
+      // If JSON parsing fails, continue to other formats
+    }
+  }
+
+  // Check for code blocks
   if (trimmed.startsWith('```')) {
     const codeMatch = trimmed.match(/```(?:\w+)?\n([\s\S]*?)```/);
     const code = codeMatch ? codeMatch[1].trim() : trimmed;
@@ -90,21 +137,7 @@ export function parseThoughtAction(text: string): {
     return { thought, action };
   }
 
-  try {
-    const parsed = JSON.parse(trimmed);
-    if (typeof parsed.tool === 'string' && typeof parsed.args === 'object') {
-      const action: JsonAction = {
-        type: 'action',
-        mode: 'json',
-        tool: parsed.tool,
-        args: parsed.args,
-      };
-      return { thought, action };
-    }
-  } catch {
-    // fall through
-  }
-
+  // Final fallback: treat as code
   const action: CodeAction = { type: 'action', mode: 'code', code: trimmed };
   return { thought, action };
 }

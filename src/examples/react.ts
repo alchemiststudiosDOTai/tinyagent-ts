@@ -4,25 +4,80 @@ dotenv.config();
 import { z } from 'zod';
 import { model, tool } from '../decorators';
 import { MultiStepAgent } from '../multiStepAgent';
+import { Scratchpad } from '../utils/scratchpad';
 
+/**
+ * Example of a ReAct agent that demonstrates the Thought → Action → Observation loop
+ * using JSON tool calls.
+ */
 @model('mistralai/mistral-small-3.1-24b-instruct:free')
-class ToolCallingAgent extends MultiStepAgent<string, string> {
+class ReActAgent extends MultiStepAgent<string, string> {
+  /**
+   * Simple echo tool that returns the input text
+   */
   @tool('Echo given text', z.object({ text: z.string() }))
   echo({ text }: { text: string }): string {
     return `Echo: ${text}`;
+  }
+  
+  /**
+   * Simple calculator tool that evaluates a math expression
+   */
+  @tool('Calculate math expression', z.object({ expression: z.string() }))
+  calculate({ expression }: { expression: string }): string {
+    try {
+      // WARNING: Never use eval in production code - this is just for demonstration
+      const result = eval(expression);
+      return `Result: ${result}`;
+    } catch (error) {
+      return `Error calculating: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  }
+}
+
+/**
+ * Callback to display the ReAct steps in a readable format
+ */
+function displayReActSteps(pad: Scratchpad): void {
+  const steps = pad.getSteps();
+  const lastStep = steps[steps.length - 1];
+  
+  if (lastStep.type === 'thought') {
+    console.log(`🤔 Thought: ${lastStep.text}`);
+  } else if (lastStep.type === 'action') {
+    if (lastStep.mode === 'json') {
+      console.log(`🛠️  Action: ${lastStep.tool}(${JSON.stringify(lastStep.args)})`);
+    } else {
+      console.log(`🛠️  Action: [Code Action]`);
+    }
+  } else if (lastStep.type === 'observation') {
+    console.log(`👁️  Observation: ${lastStep.text}`);
   }
 }
 
 async function runDemo() {
   if (!process.env.OPENROUTER_API_KEY) {
-    console.error('OPENROUTER_API_KEY not set');
+    console.error('💥 Error: OPENROUTER_API_KEY not set');
     process.exit(1);
   }
 
-  const agent = new ToolCallingAgent();
-  const question = 'Say hello using the echo tool then finish.';
-  const answer = await agent.run(question, { trace: true });
-  console.log('Final:', answer);
+  console.log('🧠 Running ReAct Agent Demo...');
+  
+  const agent = new ReActAgent();
+  // This query requires multiple steps to solve
+  const question = 'Calculate 23 * 17 and then echo the result with a friendly message.';
+  console.log(`❓ Query: "${question}"`);
+  
+  try {
+    const answer = await agent.run(question, { 
+      trace: true,
+      onStep: displayReActSteps
+    });
+    console.log(`✅ Final Answer: ${answer}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`❌ Error: ${message}`);
+  }
 }
 
 if (require.main === module) {
