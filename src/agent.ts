@@ -57,7 +57,7 @@ export abstract class Agent<I = string, O = string> {
   /** The API key for OpenRouter, loaded from environment variables. */
   private readonly apiKey: string;
   private readonly customSystemPrompt?: string;
-  private readonly promptEngine: PromptEngine;
+  protected readonly promptEngine: PromptEngine;
 
   /**
    * Initializes a new instance of the Agent.

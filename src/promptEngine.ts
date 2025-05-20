@@ -56,7 +56,13 @@ export class PromptEngine {
     fileOverrides: Record<string, string> = {},
   ) {
     // User overrides win, but defaultTemplates stay untouched
-    this.templates = { ...defaultTemplates, ...overrides };
+    this.templates = { ...defaultTemplates } as TemplateRegistry;
+    // Apply any overrides that are defined
+    Object.entries(overrides).forEach(([key, value]) => {
+      if (value) {
+        this.templates[key] = value;
+      }
+    });
     this.applyFileOverrides(fileOverrides);
   }
 

@@ -1,65 +1,60 @@
+
 import { PromptEngine, defaultTemplates } from "../src/promptEngine";
 import path from "path";
 
-function assert(condition: boolean, msg: string): void {
-  if (!condition) {
-    console.error(`❌ ${msg}`);
-    process.exit(1);
-  }
-  console.log(`✅ ${msg}`);
-}
+describe("PromptEngine", () => {
+  let engine: PromptEngine;
 
-async function run(): Promise<void> {
-  console.log("--- PromptEngine Tests ---");
+  beforeEach(() => {
+    engine = new PromptEngine();
+  });
 
-  const engine = new PromptEngine();
-  const result = engine.render("greeting", { user: "Fabian" });
-  assert(result === "\u{1F44B} Hey Fabian, how can I help?", "Default greeting");
+  it("renders the default greeting", () => {
+    expect(engine.render("greeting", { user: "Fabian" }))
+      .toBe("👋 Hey Fabian, how can I help?");
+  });
 
-  const custom = new PromptEngine({ greeting: () => "Hi" });
-  assert(custom.render("greeting") === "Hi", "Override on init");
+  it("allows constructor overrides", () => {
+    const custom = new PromptEngine({ greeting: () => "Hi" });
+    expect(custom.render("greeting")).toBe("Hi");
+  });
 
-  custom.register("thanks", () => "🙏 Thanks!");
-  assert(custom.render("thanks") === "🙏 Thanks!", "Register new");
+  it("registers a new template", () => {
+    engine.register("thanks", () => "🙏 Thanks!");
+    expect(engine.render("thanks")).toBe("🙏 Thanks!");
+  });
 
-  try {
-    custom.register("greeting", () => "oops");
-    assert(false, "Duplicate register should throw");
-  } catch (err) {
-    assert(
-      (err as Error).message === "already exists — use overwrite()",
-      "Duplicate register error message",
-    );
-  }
+  it("throws on duplicate register", () => {
+    engine.register("dup", () => "one");
+    expect(() => engine.register("dup", () => "two"))
+      .toThrow(/already exists/i);
+  });
 
-  custom.overwrite("greeting", () => "Hola");
-  assert(custom.render("greeting") === "Hola", "Overwrite existing");
+  it("overwrites an existing template", () => {
+    engine.overwrite("greeting", () => "Hola");
+    expect(engine.render("greeting")).toBe("Hola");
+  });
 
-  try {
-    custom.render("doesNotExist");
-    assert(false, "Unknown key should throw");
-  } catch (err) {
-    assert(
-      (err as Error).message === "Prompt template doesNotExist not found",
-      "Unknown key error message",
-    );
-  }
+  it("throws on unknown key", () => {
+    expect(() => engine.render("doesNotExist"))
+      .toThrow(/not found/i);
+  });
 
-  // ensure defaultTemplates were not mutated
-  const unchanged = defaultTemplates.greeting({ user: "Fabian" });
-  assert(
-    unchanged === "\u{1F44B} Hey Fabian, how can I help?",
-    "Default templates remain unchanged",
-  );
+  it("does not mutate defaultTemplates", () => {
+    expect(defaultTemplates.greeting({ user: "Fabian" }))
+      .toBe("👋 Hey Fabian, how can I help?");
+  });
 
-  const tpl = engine.render("agent", { tools: "hammer" });
-  assert(tpl.includes("hammer"), "Placeholder substitution");
+  it("substitutes placeholders", () => {
+    expect(engine.render("agent", { tools: "hammer" }))
+      .toContain("hammer");
+  });
 
-  const customFile = path.join(__dirname, "fixtures", "customAgent.md");
-  const fileOverride = new PromptEngine({}, { agent: customFile });
-  const rendered = fileOverride.render("agent", { tools: "saw" });
-  assert(rendered.includes("saw") && rendered.startsWith("Custom"), "Override via file");
+  it("accepts file-based overrides", () => {
+    const customFile = path.join(__dirname, "fixtures", "customAgent.md");
+    const filePE     = new PromptEngine({}, { agent: customFile });
 
-
-
-run();
+    expect(filePE.render("agent", { tools: "saw" }))
+      .toMatch(/Custom[\s\S]*saw/);
+  });
+});

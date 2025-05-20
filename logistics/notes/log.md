@@ -30,3 +30,16 @@
   - `src/multiplierAgent.ts` -> `src/examples/multiplierAgent.ts`
 - Update all import paths within the moved files and any other affected files.
 - Create a new `src/index.ts` to act as the main export point for the framework library.
+
+---
+
+**2024-05-13: CLI ChatAgent Prompt System & TypeScript Fixes**
+
+- Fixed the CLI chat agent to use the framework's prompt system instead of bypassing it with a direct systemPrompt.
+- Made `promptEngine` protected in the Agent base class to allow prompt registration in subclasses.
+- Updated ChatAgent to register its system prompt as the 'agent' template using `promptEngine.overwrite`.
+- Investigated and resolved TypeScript linter errors:
+  - Ensured `src/index.ts` exports were correct.
+  - Verified `tsconfig.json` includes the `src` directory.
+  - Installed TypeScript locally and confirmed type-checking passes with `npx tsc --noEmit`.
+- CLI now works and type-checks cleanly.

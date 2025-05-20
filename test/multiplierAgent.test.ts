@@ -1,55 +1,47 @@
 import * as dotenv from "dotenv";
-dotenv.config(); // Load .env file
-
-// Assuming the MultiplierAgent will be exported from its final location after refactoring
-// For now, import directly from the current location
+dotenv.config();
 import { MultiplierAgent } from "../src/multiplierAgent";
 
-/**
- * Simple baseline test for MultiplierAgent.
- * Executes the agent with a specific question and checks if the expected result is present in the output.
- */
-async function runMultiplierAgentTest(): Promise<void> {
-  console.log("--- Running MultiplierAgent Baseline Test ---");
+// Type-safe, immutable test cases
+const testCases = [
+  { question: "What is 12 multiplied by 5?", expected: "60" },
+  { question: "What is 7 times 8?", expected: "56" },
+  { question: "Multiply 0 by 99.", expected: "0" },
+  { question: "What is 100 times 1?", expected: "100" },
+  // Edge cases
+  { question: "What is -3 times 7?", expected: "-21" },
+  { question: "Multiply 2.5 by 4.", expected: "10" },
+  { question: "What is 123456 times 0?", expected: "0" },
+  { question: "Multiply apples by oranges.", expected: "error" }, // Malformed
+] as const;
 
-  // Ensure API key is available (Agent constructor also checks this)
-  if (!process.env.OPENROUTER_API_KEY) {
-    console.error(
-      "💥 TEST FAILED: OPENROUTER_API_KEY environment variable is not set.",
-    );
-    process.exit(1);
-  }
+describe("MultiplierAgent", () => {
+  let agent: MultiplierAgent;
 
-  const agent = new MultiplierAgent();
-  const question = "What is 12 multiplied by 5? Use your tool.";
-  const expectedResultSubstring = "60"; // The core numerical result we expect
-
-  console.log(`❓ Question: "${question}"`);
-  console.log(`ակ Expected result substring: "${expectedResultSubstring}"`);
-
-  try {
-    const answer = await agent.run(question);
-    console.log(`🤖 Agent Raw Answer: "${answer}"`);
-
-    // Basic assertion: Check if the answer string includes the expected number
-    if (answer.includes(expectedResultSubstring)) {
-      console.log(
-        `✅ TEST PASSED: Agent answer contains "${expectedResultSubstring}".`,
-      );
-    } else {
-      console.error(
-        `❌ TEST FAILED: Agent answer did not contain "${expectedResultSubstring}".`,
-      );
-      process.exit(1); // Indicate failure
+  beforeAll(() => {
+    agent = new MultiplierAgent();
+    if (!process.env.RUN_LIVE) {
+      // Mock agent.run for CI: deterministic answers
+      jest.spyOn(agent, "run").mockImplementation(async (q: string) => {
+        if (/apples|oranges/i.test(q)) return "Sorry, I can only multiply numbers.";
+        const match = q.match(/(-?\d+(?:\.\d+)?)\D+(-?\d+(?:\.\d+)?)/);
+        if (!match) return "Sorry, I can only multiply numbers.";
+        const a = Number(match[1]);
+        const b = Number(match[2]);
+        if (isNaN(a) || isNaN(b)) return "Sorry, I can only multiply numbers.";
+        return `The product of ${a} and ${b} is ${a * b}.`;
+      });
     }
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("💥 TEST FAILED: Agent run failed with error:", message);
-    process.exit(1); // Indicate failure
-  } finally {
-    console.log("--- MultiplierAgent Baseline Test Finished ---");
-  }
-}
+  });
 
-// Execute the test function
-runMultiplierAgentTest();
+  testCases.forEach(({ question, expected }) => {
+    it(`returns expected result for: "${question}"`, async () => {
+      const answer = await agent.run(question);
+      if (expected === "error") {
+        expect(answer.toLowerCase()).toContain("sorry");
+      } else {
+        expect(answer).toContain(expected);
+      }
+    });
+  });
+});

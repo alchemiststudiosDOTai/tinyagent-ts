@@ -1,25 +1,25 @@
+// tests/finalAnswerTool.test.ts
+
 import { FinalAnswerTool } from "../src/final-answer.tool";
 
-/**
- * Basic test to ensure FinalAnswerTool returns exactly the input it receives.
- */
-async function runFinalAnswerToolTest(): Promise<void> {
-  console.log("--- Running FinalAnswerTool Test ---");
-
+describe("FinalAnswerTool", () => {
   const tool = new FinalAnswerTool();
-  const answer = "test answer";
 
-  const result = await tool.forward(answer);
-  console.log(`Tool returned: "${result}"`);
+  /**
+   * A handful of representative payloads – proves the tool
+   * blindly echoes whatever it receives.
+   */
+  const cases = [
+    "plain string",
+    42,
+    { foo: "bar", nested: { n: 1 } },
+    ["a", 1, false],
+    null,
+    undefined,
+  ] as const;
 
-  if (result === answer) {
-    console.log("✅ TEST PASSED: FinalAnswerTool returned the input verbatim.");
-  } else {
-    console.error("❌ TEST FAILED: FinalAnswerTool did not return the input.");
-    process.exit(1);
-  }
-
-  console.log("--- FinalAnswerTool Test Finished ---");
-}
-
-runFinalAnswerToolTest();
+  it.each(cases)("returns the exact input for %p", async (input) => {
+    const output = await tool.forward(input as any);
+    expect(output).toStrictEqual(input);
+  });
+});
