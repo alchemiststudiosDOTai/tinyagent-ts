@@ -19,6 +19,7 @@ describe("MultiplierAgent", () => {
   let agent: MultiplierAgent;
 
   beforeAll(() => {
+    process.env.OPENROUTER_API_KEY ||= 'test';
     agent = new MultiplierAgent();
     if (!process.env.RUN_LIVE) {
       // Mock agent.run for CI: deterministic answers

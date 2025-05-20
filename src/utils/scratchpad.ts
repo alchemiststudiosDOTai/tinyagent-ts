@@ -3,6 +3,7 @@ import {
   CodeAction,
   JsonAction,
   ObservationStep,
+  ReflexionStep,
   ScratchStep,
   ThoughtStep,
 } from './steps';
@@ -33,6 +34,10 @@ export class Scratchpad {
     this.steps.push({ type: 'observation', text } as ObservationStep);
   }
 
+  addReflexion(text: string): void {
+    this.steps.push({ type: 'reflexion', text } as ReflexionStep);
+  }
+
   getLastObservation(): string | undefined {
     for (let i = this.steps.length - 1; i >= 0; i--) {
       const s = this.steps[i];
@@ -58,6 +63,9 @@ export class Scratchpad {
         case 'thought':
           msgs.push({ role: 'assistant', content: `Thought: ${step.text}` });
           break;
+        case 'reflexion':
+          msgs.push({ role: 'assistant', content: `Reflexion: ${step.text}` });
+          break;
         case 'action':
           if (step.mode === 'code') {
             msgs.push({
@@ -82,9 +90,13 @@ export class Scratchpad {
 }
 
 export function parseThoughtAction(text: string): {
-  thought: string;
-  action: ActionStep;
+  thought?: string;
+  action?: ActionStep;
+  reflexion?: string;
 } {
+  const reflexMatch = text.match(/Reflect(?:ion|xion)?:([\s\S]*?)(?=\n(?:Thought|Action):|$)/i);
+  const reflexion = reflexMatch ? reflexMatch[1].trim() : undefined;
+
   const thoughtMatch = text.match(/Thought:(.*?)(?:\nAction:|$)/s);
   const thought = thoughtMatch ? thoughtMatch[1].trim() : '';
   const actionPart = text.split(/\nAction:/s)[1] ?? '';
@@ -102,7 +114,7 @@ export function parseThoughtAction(text: string): {
           tool: parsed.tool,
           args: parsed.args,
         };
-        return { thought, action };
+        return { thought, action, reflexion };
       }
     }
   } catch {
@@ -122,7 +134,7 @@ export function parseThoughtAction(text: string): {
           tool: parsed.tool,
           args: parsed.args,
         };
-        return { thought, action };
+        return { thought, action, reflexion };
       }
     } catch {
       // If JSON parsing fails, continue to other formats
@@ -134,10 +146,14 @@ export function parseThoughtAction(text: string): {
     const codeMatch = trimmed.match(/```(?:\w+)?\n([\s\S]*?)```/);
     const code = codeMatch ? codeMatch[1].trim() : trimmed;
     const action: CodeAction = { type: 'action', mode: 'code', code };
-    return { thought, action };
+    return { thought, action, reflexion };
   }
 
   // Final fallback: treat as code
-  const action: CodeAction = { type: 'action', mode: 'code', code: trimmed };
-  return { thought, action };
+  if (trimmed) {
+    const action: CodeAction = { type: 'action', mode: 'code', code: trimmed };
+    return { thought, action, reflexion };
+  }
+
+  return { thought, reflexion };
 }

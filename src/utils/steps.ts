@@ -28,4 +28,14 @@ export interface ObservationStep {
   text: string;
 }
 
-export type ScratchStep = TaskStep | ThoughtStep | ActionStep | ObservationStep;
+export interface ReflexionStep {
+  type: 'reflexion';
+  text: string;
+}
+
+export type ScratchStep =
+  | TaskStep
+  | ThoughtStep
+  | ActionStep
+  | ObservationStep
+  | ReflexionStep;

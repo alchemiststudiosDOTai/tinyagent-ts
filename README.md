@@ -146,6 +146,7 @@ TinyAgent‑TS now mirrors the strict Thought→Action→Observation loop from [
 4. **Execution loop** – `MultiStepAgent` cycles through the scratchpad until a `final_answer` action is returned.
 5. **Debug & transparency** – pass `--trace` (or `trace: true`) to log each `T/A/O` triple as it happens.
 6. **Docs & example** – see `src/examples/react.ts` for a minimal JSON‑tool agent using these pieces.
+7. **Reflexion** – after each Observation, the agent sends `Reflect:` for a self-critique and optional fix.
 
 ---
 
