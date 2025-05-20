@@ -7,7 +7,6 @@ describe("FinalAnswerTool", () => {
 
   /**
    * A handful of representative payloads – proves the tool
-   * blindly echoes whatever it receives.
    */
   const cases = [
     "plain string",
