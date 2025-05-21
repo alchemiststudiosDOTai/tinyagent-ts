@@ -1,11 +1,11 @@
 // src/agent.ts
 import "reflect-metadata";
-import { ZodError } from "zod"; // Removed unused 'z' and 'ZodSchema'
 import { META_KEYS, ToolMetadata } from "./decorators";
 import { PromptEngine } from "./promptEngine";
-import { FinalAnswerTool } from "./final-answer.tool";
+import { FinalAnswerTool, FinalAnswerArgs } from "./final-answer.tool";
 import { AssistantReplySchema } from "./schemas";
 import { z } from "zod";
+import { compileValidator } from './utils/validator';
 
 /**
  * Represents a tool's runtime information, including its metadata and
@@ -56,7 +56,7 @@ export interface LLMMessage {
  * @template I - The type of the input the agent's `run` method accepts. Defaults to `string`.
  * @template O - The type of the output the agent's `run` method produces. Defaults to `string`.
  */
-export abstract class Agent<I = string, O = string> {
+export abstract class Agent<I = string> {
   /** The API key for OpenRouter, loaded from environment variables. */
   private readonly apiKey: string;
   protected readonly customSystemPrompt?: string;
@@ -112,35 +112,28 @@ export abstract class Agent<I = string, O = string> {
       Reflect.getMetadata(META_KEYS.TOOLS, this.constructor) || [];
 
     const registry: Record<string, ToolHandle> = Object.fromEntries(
-      metaList.map((m) => [
-        m.name,
-        {
-          meta: m,
-          call: async (args: Record<string, unknown>): Promise<unknown> => {
-            try {
-              m.schema.parse(args);
-            } catch (error) {
-              if (error instanceof ZodError) {
-                throw new Error(
-                  `Invalid arguments for tool "${m.name}": ${error.errors
-                    .map((e) => `${e.path.join(".")}: ${e.message}`)
-                    .join(", ")}`,
-                );
+      metaList.map((m) => {
+        const validate = compileValidator(m.schema);
+        return [
+          m.name,
+          {
+            meta: m,
+            call: async (args: Record<string, unknown>): Promise<unknown> => {
+              try {
+                const parsed = validate(args);
+                return await (this as any)[m.method](parsed);
+              } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                throw new Error(`Error executing tool "${m.name}": ${message}`);
               }
-              throw error;
-            }
-            try {
-              return await (this as any)[m.method](args);
-            } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
-              throw new Error(`Error executing tool "${m.name}": ${message}`);
-            }
+            },
           },
-        },
-      ]),
+        ];
+      }),
     );
 
     const finalTool = new FinalAnswerTool();
+    const validateFinal = compileValidator(finalTool.schema);
     registry[finalTool.name] = {
       meta: {
         name: finalTool.name,
@@ -148,7 +141,10 @@ export abstract class Agent<I = string, O = string> {
         method: "forward",
         schema: finalTool.schema,
       },
-      call: async (args: Record<string, unknown>) => finalTool.forward(args as any),
+      call: async (args: Record<string, unknown>) => {
+        const parsed = validateFinal(args);
+        return finalTool.forward(parsed);
+      },
     };
 
     return registry;
@@ -228,7 +224,7 @@ export abstract class Agent<I = string, O = string> {
    * @param input - The input to be processed by the agent.
    * @returns A promise that resolves with the agent's final output.
    */
-  async run(input: I): Promise<O> {
+  async run(input: I): Promise<FinalAnswerArgs> {
     const modelName = this.getModelName();
     const tools = this.buildToolRegistry();
     const toolCatalog = Object.values(tools)
@@ -268,7 +264,7 @@ export abstract class Agent<I = string, O = string> {
         const { fixed, fixedParsed } = await this.retryWithFixRequest(rawReply, validation.error);
         if (!fixedParsed) {
           this.memory.push({ role: "assistant", content: `ERROR: Unable to produce valid schema output.` });
-          return fixed as unknown as O;
+          return { answer: String(fixed) };
         }
         parsed = fixedParsed;
         this.memory.push({ role: "assistant", content: JSON.stringify(parsed) });
@@ -284,14 +280,14 @@ export abstract class Agent<I = string, O = string> {
           console.warn("final_answer called before any other tool");
         }
         const answer = await finalTool.forward(toolArgs);
-        return answer as O;
+        return answer;
       }
 
       const selectedTool = tools[toolName];
       if (!selectedTool) {
         const errorMsg = `Error: LLM requested unknown tool "${toolName}". Available tools: ${Object.keys(tools).join(", ")}`;
         this.memory.push({ role: "assistant", content: errorMsg });
-        return errorMsg as unknown as O;
+        return { answer: errorMsg };
       }
 
       let toolResult;
@@ -306,19 +302,19 @@ export abstract class Agent<I = string, O = string> {
           );
           if (!fixedParsed || fixedParsed.tool !== toolName) {
             this.memory.push({ role: "assistant", content: `ERROR: Unable to produce valid tool arguments for "${toolName}".` });
-            return fixed as unknown as O;
+            return { answer: String(fixed) };
           }
           try {
             toolResult = await selectedTool.call(fixedParsed.args);
           } catch (err2) {
             this.memory.push({ role: "assistant", content: `ERROR: Tool argument validation failed again for "${toolName}".` });
-            return (err2 instanceof Error ? err2.message : String(err2)) as unknown as O;
+            return { answer: err2 instanceof Error ? err2.message : String(err2) };
           }
           this.memory.push({ role: "assistant", content: `TOOL_RESULT: ${JSON.stringify(toolResult)}` });
           continue;
         }
         this.memory.push({ role: "assistant", content: `ERROR: Tool execution failed for "${toolName}": ${error instanceof Error ? error.message : String(error)}` });
-        return (error instanceof Error ? error.message : String(error)) as unknown as O;
+        return { answer: error instanceof Error ? error.message : String(error) };
       }
 
       this.memory.push({ role: "assistant", content: `TOOL_RESULT: ${JSON.stringify(toolResult)}` });

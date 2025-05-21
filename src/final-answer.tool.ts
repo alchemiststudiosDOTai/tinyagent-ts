@@ -13,18 +13,19 @@ export interface Tool<I = unknown, O = unknown> {
   forward(input: I): O | Promise<O>;
 }
 
-export type FinalAnswerInput = { answer: string };
-export type FinalAnswerOutput = { answer: string };
+// Explicit args type for the built-in final_answer tool
+export type FinalAnswerArgs = { answer: string };
+export type FinalAnswerOutput = FinalAnswerArgs;
 
 /**
  * Always provide the agent’s final answer verbatim.
  */
-export class FinalAnswerTool implements Tool<FinalAnswerInput, FinalAnswerOutput> {
+export class FinalAnswerTool implements Tool<FinalAnswerArgs, FinalAnswerOutput> {
   readonly name = 'final_answer';
   readonly description = "Provides the definitive answer to the user’s question.";
   readonly schema = z.object({ answer: z.string() });
 
-  forward(answer: FinalAnswerInput): FinalAnswerOutput {
+  forward(answer: FinalAnswerArgs): FinalAnswerOutput {
     return answer;
   }
 }

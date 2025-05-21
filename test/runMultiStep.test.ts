@@ -8,7 +8,7 @@ describe('runMultiStep', () => {
     process.env.OPENROUTER_API_KEY ||= 'test';
   });
   @model('test-model')
-  class CalcAgent extends Agent<string, string> {
+  class CalcAgent extends Agent<string> {
     @tool('Add numbers', z.object({ a: z.number(), b: z.number() }))
     add({ a, b }: { a: number; b: number }): string {
       return String(a + b);
@@ -29,7 +29,7 @@ describe('runMultiStep', () => {
     ];
     jest.spyOn(agent as any, 'makeOpenRouterRequest').mockImplementation(async () => responses.shift()!);
     const out = await runMultiStep(agent, 'Add 2+3 then multiply by 6');
-    expect(out).toContain('30');
+    expect(out.answer).toContain('30');
   });
 });
 

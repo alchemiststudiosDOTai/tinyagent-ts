@@ -10,7 +10,7 @@ import { model, tool } from "../decorators";
  * Supports addition, subtraction, multiplication, and division.
  */
 @model("anthropic/claude-3-sonnet")
-export class MathAgent extends Agent<string, string> {
+export class MathAgent extends Agent<string> {
   /**
    * Adds two numbers.
    */

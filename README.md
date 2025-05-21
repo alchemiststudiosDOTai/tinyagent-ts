@@ -50,6 +50,8 @@ npx ts-node src/examples/react.ts
 
 See the new `/examples` directory for walkthroughs of the strict `final_answer` flow.
 
+Every conversation **must** terminate with `{ "tool": "final_answer", "args": { "answer": "..." } }`. Plain text replies are rejected.
+
 The agent demos will ask an LLM (via OpenRouter) whether it should answer directly or call one of its local tools, then print the final reply. The `multiplierAgent.ts` specifically uses `dotenv` to load the key from the `.env` file. The `TriageAgent` simply lists your available tools and prompts you to pick one.
 
 ---

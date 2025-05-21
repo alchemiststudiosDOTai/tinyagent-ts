@@ -8,7 +8,7 @@ describe('final_answer enforcement', () => {
   });
 
   @model('test-model')
-  class CalcAgent extends Agent<string, any> {
+  class CalcAgent extends Agent<string> {
     @tool('Add numbers', z.object({ a: z.number(), b: z.number() }))
     add({ a, b }: { a: number; b: number }) {
       return String(a + b);
@@ -40,6 +40,6 @@ describe('final_answer enforcement', () => {
       .mockImplementation(async () => responses.shift()!);
 
     const out = await agent.run('Add 1 and 2');
-    expect(String(out)).toMatch(/unknown tool/i);
+    expect(out.answer).toMatch(/unknown tool/i);
   });
 });

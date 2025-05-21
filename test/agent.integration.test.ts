@@ -5,7 +5,7 @@ describe("Agent Integration - Retry Logic", () => {
   beforeAll(() => {
     process.env.OPENROUTER_API_KEY ||= 'test';
   });
-  class TestAgent extends Agent<string, any> {
+  class TestAgent extends Agent<string> {
     // Minimal model decorator simulation
     getModelName() {
       return "test-model";

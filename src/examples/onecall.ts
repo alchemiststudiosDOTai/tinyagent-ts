@@ -10,7 +10,7 @@ import { model, tool } from "../decorators";
  * This agent demonstrates handling a request that only requires one decision or action.
  */
 @model("mistralai/mistral-small-3.1-24b-instruct:free")
-export class WeatherAgent extends Agent<string, string> {
+export class WeatherAgent extends Agent<string> {
   /**
    * Gets current weather for a location (simulated).
    */

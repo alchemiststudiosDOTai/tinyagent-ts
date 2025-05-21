@@ -1,5 +1,5 @@
 import { Agent, LLMMessage } from './agent';
-import { FinalAnswerTool } from './final-answer.tool';
+import { FinalAnswerTool, FinalAnswerArgs } from './final-answer.tool';
 import { Scratchpad, parseThoughtAction } from './utils/scratchpad';
 import { ActionStep } from './utils/steps';
 
@@ -11,7 +11,7 @@ export interface MultiStepOptions {
   systemPromptFile?: string;
 }
 
-export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
+export class MultiStepAgent<I = string> extends Agent<I> {
   private scratchpad = new Scratchpad();
   private maxSteps: number;
   private trace: boolean;
@@ -41,7 +41,7 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
     console.log(parts.filter(Boolean).join(' | '));
   }
 
-  async run(task: I, opts: Partial<MultiStepOptions> = {}): Promise<O> {
+  async run(task: I, opts: Partial<MultiStepOptions> = {}): Promise<FinalAnswerArgs> {
     if (opts.trace !== undefined) this.trace = opts.trace;
     if (opts.onStep) this.onStep = opts.onStep;
 
@@ -86,7 +86,7 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
             this.scratchpad.addObservation(observation);
             this.log(undefined, undefined, observation);
             if (this.onStep) this.onStep(this.scratchpad);
-            return action.args.answer as unknown as O;
+            return { answer: action.args.answer as string };
           }
           const tool = tools[action.tool];
           if (!tool) {
@@ -136,7 +136,7 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
             this.scratchpad.addObservation(obs);
             this.log(undefined, undefined, obs);
             if (this.onStep) this.onStep(this.scratchpad);
-            return fixAction.args.answer as unknown as O;
+            return { answer: fixAction.args.answer as string };
           }
           const tool = tools[fixAction.tool];
           let obs = '';
@@ -164,6 +164,6 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
       }
     }
 
-    return (this.scratchpad.getLastObservation() ?? '') as unknown as O;
+    return { answer: this.scratchpad.getLastObservation() ?? '' };
   }
 }

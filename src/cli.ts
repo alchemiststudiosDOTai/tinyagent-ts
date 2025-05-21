@@ -7,7 +7,7 @@ import { createInterface } from "readline";
  * Basic chat agent that just forwards messages to the LLM
  */
 @model("anthropic/claude-3-sonnet")
-class ChatAgent extends Agent<string, string> {
+class ChatAgent extends Agent<string> {
   constructor() {
     super();
     (this as any).promptEngine.overwrite("agent", () => `You are a helpful AI assistant. You aim to be:
@@ -45,7 +45,7 @@ Type your messages and press Enter. Type 'exit' or press Ctrl+C to quit.
 
       try {
         const response = await agent.run(input);
-        console.log("\n🤖:", response);
+        console.log("\n🤖:", response.answer);
       } catch (error) {
         console.error("\n❌ Error:", error instanceof Error ? error.message : error);
       }
