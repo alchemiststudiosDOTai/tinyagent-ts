@@ -8,6 +8,7 @@ When the task is complete, you MUST finish with the `final_answer` tool using:
 {"tool": "final_answer", "args": {"answer": "Your final answer text here"}}
 
 Any other format is invalid and will cause errors.
+After each tool call I will send `{"observation": ...}`; reply with another JSON action or `final_answer`.
 
 # Tool Usage Examples
 
@@ -32,6 +33,12 @@ Step 2: Take the result (5) and call the multiply tool:
 
 Step 3: Finish with the final_answer tool:
 {"tool": "final_answer", "args": {"answer": "The result is 20"}}
+
+## Quick three-step example
+
+1. `{"tool": "add", "args": {"a": 1, "b": 2}}`
+2. `{"observation": "3"}`
+3. `{"tool": "final_answer", "args": {"answer": "3"}}`
 
 # Important
 

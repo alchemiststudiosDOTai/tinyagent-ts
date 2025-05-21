@@ -43,4 +43,19 @@ describe('final_answer enforcement', () => {
     const out = await agent.run('Add 1 and 2');
     expect(out).toEqual({ answer: '3' });
   });
+
+  it('stops after two unknown tool calls', async () => {
+    const agent = new CalcAgent();
+    const responses = [
+      { choices: [{ message: { content: '{"tool":"bogus","args":{}}' } }] },
+      { choices: [{ message: { content: '{"tool":"none","args":{}}' } }] },
+      { choices: [{ message: { content: '{"tool":"final_answer","args":{"answer":"ok"}}' } }] },
+    ];
+    jest
+      .spyOn(agent as any, 'makeOpenRouterRequest')
+      .mockImplementation(async () => responses.shift()!);
+
+    const out = await agent.run('Add 1 and 2');
+    expect(out.answer).toContain('unknown tool');
+  });
 });

@@ -6,7 +6,6 @@ import { FinalAnswerTool, FinalAnswerArgs } from "./final-answer.tool";
 import { AssistantReplySchema } from "./schemas";
 import { extractJson } from './utils/json';
 import { z } from "zod";
-import { compileValidator } from './utils/validator';
 
 /**
  * Represents a tool's runtime information, including its metadata and
@@ -64,6 +63,8 @@ export abstract class Agent<I = string> {
   protected readonly promptEngine: PromptEngine;
   /** Conversation memory for ReAct loop */
   protected readonly memory: LLMMessage[] = [];
+  /** Simple logger with debug() method */
+  protected readonly logger = console;
 
   /**
    * Initializes a new instance of the Agent.
@@ -113,28 +114,24 @@ export abstract class Agent<I = string> {
       Reflect.getMetadata(META_KEYS.TOOLS, this.constructor) || [];
 
     const registry: Record<string, ToolHandle> = Object.fromEntries(
-      metaList.map((m) => {
-        const validate = compileValidator(m.schema);
-        return [
-          m.name,
-          {
-            meta: m,
-            call: async (args: Record<string, unknown>): Promise<unknown> => {
-              try {
-                const parsed = validate(args);
-                return await (this as any)[m.method](parsed);
-              } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                throw new Error(`Error executing tool "${m.name}": ${message}`);
-              }
-            },
+      metaList.map((m) => [
+        m.name,
+        {
+          meta: m,
+          call: async (args: Record<string, unknown>): Promise<unknown> => {
+            try {
+              const parsed = m.schema.parse(args);
+              return await (this as any)[m.method](parsed);
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              throw new Error(`Error executing tool "${m.name}": ${message}`);
+            }
           },
-        ];
-      }),
+        },
+      ]),
     );
 
     const finalTool = new FinalAnswerTool();
-    const validateFinal = compileValidator(finalTool.schema);
     registry[finalTool.name] = {
       meta: {
         name: finalTool.name,
@@ -143,7 +140,7 @@ export abstract class Agent<I = string> {
         schema: finalTool.schema,
       },
       call: async (args: Record<string, unknown>) => {
-        const parsed = validateFinal(args);
+        const parsed = finalTool.schema.parse(args);
         return finalTool.forward(parsed);
       },
     };
@@ -246,6 +243,7 @@ export abstract class Agent<I = string> {
     const finalTool = new FinalAnswerTool();
     const maxSteps = 5;
     let usedTool = false;
+    let badToolCalls = 0;
 
     for (let step = 0; step < maxSteps; step++) {
       const responseBody = await this.makeOpenRouterRequest(this.memory, modelName);
@@ -291,7 +289,11 @@ export abstract class Agent<I = string> {
 
       const selectedTool = tools[toolName];
       if (!selectedTool) {
+        badToolCalls++;
         const errorMsg = `Error: LLM requested unknown tool "${toolName}". Available tools: ${Object.keys(tools).join(", ")}`;
+        if (badToolCalls >= 2) {
+          return { answer: `${errorMsg} (too many unknown tools)` };
+        }
         this.memory.push({ role: "assistant", content: errorMsg });
         continue;
       }
@@ -316,6 +318,7 @@ export abstract class Agent<I = string> {
             this.memory.push({ role: "assistant", content: `ERROR: Tool argument validation failed again for "${toolName}".` });
             return { answer: err2 instanceof Error ? err2.message : String(err2) };
           }
+          this.logger.debug(`step ${step} → ${toolName}`);
           this.memory.push({ role: "assistant", content: JSON.stringify({ observation: toolResult }) });
           continue;
         }
@@ -323,6 +326,7 @@ export abstract class Agent<I = string> {
         continue;
       }
 
+      this.logger.debug(`step ${step} → ${toolName}`);
       this.memory.push({ role: "assistant", content: JSON.stringify({ observation: toolResult }) });
       continue;
     }
