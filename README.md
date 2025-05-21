@@ -48,6 +48,8 @@ npx ts-node src/triageAgent.ts
 npx ts-node src/examples/react.ts
 ```
 
+See the new `/examples` directory for walkthroughs of the strict `final_answer` flow.
+
 The agent demos will ask an LLM (via OpenRouter) whether it should answer directly or call one of its local tools, then print the final reply. The `multiplierAgent.ts` specifically uses `dotenv` to load the key from the `.env` file. The `TriageAgent` simply lists your available tools and prompts you to pick one.
 
 ---
@@ -68,13 +70,13 @@ The agent demos will ask an LLM (via OpenRouter) whether it should answer direct
 
    1. Build a _system prompt_ that lists every tool.
    2. Send `[system, user]` messages to the chosen LLM (`@model`).
-   3. If the LLM replies with JSON `{"tool":"name","args":{…}}`, the agent:
+   3. The LLM must always respond with a JSON tool call:
 
       - Validates `args` using the stored Zod schema.
       - Executes the bound class method.
       - Sends `TOOL_RESULT` back to the model for a polished answer.
 
-   4. Otherwise, return the text reply directly.
+   4. The conversation ends when the model calls the `final_answer` tool with the final text.
 
 ```mermaid
 flowchart TB

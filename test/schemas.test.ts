@@ -59,23 +59,12 @@ describe("AssistantReplySchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts a valid direct answer", () => {
-    const data = { answer: "42" };
-    const result = AssistantReplySchema.safeParse(data);
-    expect(result.success).toBe(true);
-  });
-
   it("rejects extra keys in tool call", () => {
     const data = { tool: "add", args: { a: 1, b: 2 }, foo: 99 };
     const result = AssistantReplySchema.safeParse(data);
     expect(result.success).toBe(false);
   });
 
-  it("rejects extra keys in direct answer", () => {
-    const data = { answer: "42", foo: "bar" };
-    const result = AssistantReplySchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
 
   it("rejects missing required keys", () => {
     const data = {};

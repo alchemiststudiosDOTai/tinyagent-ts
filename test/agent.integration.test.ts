@@ -10,10 +10,6 @@ describe("Agent Integration - Retry Logic", () => {
     getModelName() {
       return "test-model";
     }
-    // No tools for this test
-    protected buildToolRegistry() {
-      return {};
-    }
   }
 
   it("retries on invalid output and succeeds on valid output", async () => {
@@ -26,7 +22,8 @@ describe("Agent Integration - Retry Logic", () => {
       ]
     };
     const validObj = {
-      answer: "42"
+      tool: "final_answer",
+      args: { answer: "42" }
     };
     const validResponse = {
       choices: [
@@ -43,7 +40,6 @@ describe("Agent Integration - Retry Logic", () => {
 
     // Assert
     expect(makeOpenRouterRequestMock).toHaveBeenCalledTimes(2);
-    // Should match the valid object (schema-validated)
-    expect(result).toEqual(expect.objectContaining(validObj));
+    expect(result).toEqual({ answer: "42" });
   });
 });
