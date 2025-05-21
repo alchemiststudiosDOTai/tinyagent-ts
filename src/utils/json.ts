@@ -15,9 +15,25 @@ export function findFirstJson(text: string): string | null {
   return null;
 }
 
+/** Parse JSON safely, returning null on failure. */
+export function safeJsonParse<T>(str: string): T | null {
+  try {
+    return JSON.parse(str) as T;
+  } catch {
+    return null;
+  }
+}
+
 export function extractJson(text: string): string | null {
-  const codeBlock = text.match(/```(?:json)?\s*\n([\s\S]*?)```/i);
-  const candidate = codeBlock ? codeBlock[1] : text;
-  return findFirstJson(candidate);
+  const blocks = Array.from(text.matchAll(/```(?:json)?\s*\n([\s\S]*?)```/gi)).map(
+    (m) => m[1],
+  );
+  blocks.push(text);
+  for (const b of blocks) {
+    const candidate = findFirstJson(b);
+    if (!candidate) continue;
+    if (safeJsonParse(candidate)) return candidate;
+  }
+  return null;
 }
 

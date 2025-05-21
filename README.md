@@ -24,29 +24,26 @@ First, please make sure you have Node.js and npm installed.
 
 ```bash
 # 1 . Clone the repository and install dependencies
-git clone <repository-url> # Or download the code
-cd tinyagent-ts
-npm install
+git clone <repository-url>
+cd tinyagent-ts && npm install
 
-# 2 . Create a .env file in the root directory with your OpenRouter key
-# .env content:
-# OPENROUTER_API_KEY="sk-or-..."
+# 2 . Provide your OpenRouter key
+echo 'OPENROUTER_API_KEY="sk-or-..."' > .env
 
-# Or, alternatively, export the key to your environment:
-export OPENROUTER_API_KEY="sk-or-…"
-
-# 3 . Run the original CalcAgent demo
+# 3 . Run the CalcAgent demo
 npx ts-node src/index.ts
-
-# 4 . Run the MultiplierAgent demo
-npx ts-node src/multiplierAgent.ts
-
-# 5 . Try the TriageAgent
-npx ts-node src/triageAgent.ts
-
-# 6 . ReAct JSON example
-npx ts-node src/examples/react.ts
 ```
+
+Example prompt/response:
+
+```text
+{"tool":"add","args":{"a":1,"b":2}}
+{"observation":"3"}
+{"tool":"final_answer","args":{"answer":"3"}}
+```
+
+By default the agent makes a single tool call. Increase `maxSteps` in
+`MultiStepAgent` (or `runMultiStep`) if you expect longer chains.
 
 See the new `/examples` directory for walkthroughs of the strict `final_answer` flow.
 

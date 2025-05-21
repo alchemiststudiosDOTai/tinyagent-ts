@@ -17,15 +17,18 @@ export interface Tool<I = unknown, O = unknown> {
 export type FinalAnswerArgs = { answer: string };
 export type FinalAnswerOutput = FinalAnswerArgs;
 
+export const FinalAnswerSchema = z.object({ answer: z.string() });
+
 /**
  * Always provide the agent’s final answer verbatim.
  */
 export class FinalAnswerTool implements Tool<FinalAnswerArgs, FinalAnswerOutput> {
   readonly name = 'final_answer';
   readonly description = "Provides the definitive answer to the user’s question.";
-  readonly schema = z.object({ answer: z.string() });
+  readonly schema = FinalAnswerSchema;
 
   forward(answer: FinalAnswerArgs): FinalAnswerOutput {
-    return answer;
+    const parsed = FinalAnswerSchema.parse(answer);
+    return parsed;
   }
 }
