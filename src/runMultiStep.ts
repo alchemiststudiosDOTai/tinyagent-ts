@@ -1,6 +1,6 @@
 import { Agent, LLMMessage } from './agent';
 import { FinalAnswerArgs, FinalAnswerTool } from './final-answer.tool';
-import { findFirstJson } from './utils/json';
+import { extractJson } from './utils/json';
 
 export interface MultiStepOptions {
   maxSteps?: number;
@@ -33,7 +33,7 @@ export async function runMultiStep<I = string>(
   for (let step = 0; step < maxSteps; step++) {
     const resp = await (agent as any).makeOpenRouterRequest(messages, modelName);
     const reply = resp.choices[0]?.message?.content?.trim() ?? '';
-    const jsonStr = findFirstJson(reply);
+    const jsonStr = extractJson(reply);
     if (!jsonStr) {
       // Non JSON => done
       return { answer: reply };

@@ -15,3 +15,9 @@ export function findFirstJson(text: string): string | null {
   return null;
 }
 
+export function extractJson(text: string): string | null {
+  const codeBlock = text.match(/```(?:json)?\s*\n([\s\S]*?)```/i);
+  const candidate = codeBlock ? codeBlock[1] : text;
+  return findFirstJson(candidate);
+}
+
