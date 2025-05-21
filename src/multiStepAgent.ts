@@ -66,13 +66,13 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
       const reply = response.choices[0]?.message?.content?.trim() ?? '';
 
       const { thought, action } = parseThoughtAction(reply);
-      this.scratchpad.addThought(thought);
-      this.scratchpad.addAction(action);
+      if (thought) this.scratchpad.addThought(thought);
+      if (action) this.scratchpad.addAction(action);
       this.log(thought, action);
 
       let observation = '';
       try {
-        if (action.mode === 'json') {
+        if (action && action.mode === 'json') {
           if (action.tool === finalTool.name) {
             const finalAnswer = await finalTool.forward(action.args);
             observation = typeof finalAnswer === 'object' ? JSON.stringify(finalAnswer) : String(finalAnswer);
@@ -88,8 +88,10 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
             const result = await tool.call(action.args);
             observation = JSON.stringify(result);
           }
-        } else {
+        } else if (action) {
           observation = 'Code actions not supported';
+        } else {
+          observation = 'No action provided';
         }
       } catch (err) {
         observation = err instanceof Error ? err.message : String(err);
@@ -98,6 +100,54 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
       this.scratchpad.addObservation(observation);
       this.log(undefined, undefined, observation);
       if (this.onStep) this.onStep(this.scratchpad);
+
+      // Reflexion step
+      const reflectMsgs: LLMMessage[] = this.scratchpad.toMessages(systemPrompt);
+      reflectMsgs.push({ role: 'user', content: 'Reflect:' });
+      const reflectRes = await this.makeOpenRouterRequest(reflectMsgs, modelName);
+      const reflectReply = reflectRes.choices[0]?.message?.content?.trim() ?? '';
+      const { thought: fixThought, action: fixAction, reflexion } =
+        parseThoughtAction(reflectReply);
+      if (reflexion) {
+        this.scratchpad.addReflexion(reflexion);
+        this.log(reflexion);
+      }
+      if (fixAction) {
+        if (fixAction.mode === 'json') {
+          if (fixAction.tool === finalTool.name) {
+            const finalAnswer = await finalTool.forward(fixAction.args);
+            const obs =
+              typeof finalAnswer === 'object'
+                ? JSON.stringify(finalAnswer)
+                : String(finalAnswer);
+            this.scratchpad.addObservation(obs);
+            this.log(undefined, undefined, obs);
+            if (this.onStep) this.onStep(this.scratchpad);
+            return fixAction.args.answer as unknown as O;
+          }
+          const tool = tools[fixAction.tool];
+          let obs = '';
+          try {
+            if (!tool) {
+              obs = `Unknown tool: ${fixAction.tool}`;
+            } else {
+              const result = await tool.call(fixAction.args);
+              obs = JSON.stringify(result);
+            }
+          } catch (err) {
+            obs = err instanceof Error ? err.message : String(err);
+          }
+          if (fixThought) this.scratchpad.addThought(fixThought);
+          this.scratchpad.addAction(fixAction);
+          this.scratchpad.addObservation(obs);
+          this.log(fixThought, fixAction, obs);
+          if (this.onStep) this.onStep(this.scratchpad);
+        }
+      } else if (fixThought) {
+        this.scratchpad.addThought(fixThought);
+        this.log(fixThought);
+        if (this.onStep) this.onStep(this.scratchpad);
+      }
     }
 
     return (this.scratchpad.getLastObservation() ?? '') as unknown as O;
