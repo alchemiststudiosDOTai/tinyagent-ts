@@ -29,17 +29,18 @@ describe('final_answer enforcement', () => {
     expect(out).toEqual({ answer: '3' });
   });
 
-  it('fails when final_answer is not used', async () => {
+  it('continues after unknown tool and returns final answer', async () => {
     const agent = new CalcAgent();
     const responses = [
       { choices: [{ message: { content: '{"tool":"add","args":{"a":1,"b":2}}' } }] },
       { choices: [{ message: { content: '{"tool":"FINISH","args":{"answer":"3"}}' } }] },
+      { choices: [{ message: { content: '{"tool":"final_answer","args":{"answer":"3"}}' } }] },
     ];
     jest
       .spyOn(agent as any, 'makeOpenRouterRequest')
       .mockImplementation(async () => responses.shift()!);
 
     const out = await agent.run('Add 1 and 2');
-    expect(out.answer).toMatch(/unknown tool/i);
+    expect(out).toEqual({ answer: '3' });
   });
 });

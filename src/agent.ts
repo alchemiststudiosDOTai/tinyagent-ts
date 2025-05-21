@@ -4,7 +4,7 @@ import { META_KEYS, ToolMetadata } from "./decorators";
 import { PromptEngine } from "./promptEngine";
 import { FinalAnswerTool, FinalAnswerArgs } from "./final-answer.tool";
 import { AssistantReplySchema } from "./schemas";
-import { findFirstJson } from './utils/json';
+import { extractJson } from './utils/json';
 import { z } from "zod";
 import { compileValidator } from './utils/validator';
 
@@ -253,7 +253,7 @@ export abstract class Agent<I = string> {
 
       let parsed: any;
       let validation: any;
-      const jsonText = findFirstJson(rawReply);
+      const jsonText = extractJson(rawReply);
       if (jsonText) {
         try {
           parsed = JSON.parse(jsonText);
@@ -293,7 +293,7 @@ export abstract class Agent<I = string> {
       if (!selectedTool) {
         const errorMsg = `Error: LLM requested unknown tool "${toolName}". Available tools: ${Object.keys(tools).join(", ")}`;
         this.memory.push({ role: "assistant", content: errorMsg });
-        return { answer: errorMsg };
+        continue;
       }
 
       let toolResult;
@@ -316,14 +316,14 @@ export abstract class Agent<I = string> {
             this.memory.push({ role: "assistant", content: `ERROR: Tool argument validation failed again for "${toolName}".` });
             return { answer: err2 instanceof Error ? err2.message : String(err2) };
           }
-          this.memory.push({ role: "assistant", content: `TOOL_RESULT: ${JSON.stringify(toolResult)}` });
+          this.memory.push({ role: "assistant", content: JSON.stringify({ observation: toolResult }) });
           continue;
         }
         this.memory.push({ role: "assistant", content: `ERROR: Tool execution failed for "${toolName}": ${error instanceof Error ? error.message : String(error)}` });
-        return { answer: error instanceof Error ? error.message : String(error) };
+        continue;
       }
 
-      this.memory.push({ role: "assistant", content: `TOOL_RESULT: ${JSON.stringify(toolResult)}` });
+      this.memory.push({ role: "assistant", content: JSON.stringify({ observation: toolResult }) });
       continue;
     }
 

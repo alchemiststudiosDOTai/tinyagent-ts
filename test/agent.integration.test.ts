@@ -42,4 +42,19 @@ describe("Agent Integration - Retry Logic", () => {
     expect(makeOpenRouterRequestMock).toHaveBeenCalledTimes(2);
     expect(result).toEqual({ answer: "42" });
   });
+
+  it("continues when the model calls an unknown tool", async () => {
+    const agent = new TestAgent();
+    const unknown = { choices: [ { message: { content: '{"tool":"bogus","args":{}}' } } ] };
+    const final = { choices: [ { message: { content: '{"tool":"final_answer","args":{"answer":"ok"}}' } } ] };
+    const mock = jest
+      .spyOn(agent as any, "makeOpenRouterRequest")
+      .mockImplementationOnce(async () => unknown)
+      .mockImplementationOnce(async () => final);
+
+    const result = await agent.run("test");
+
+    expect(mock).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({ answer: "ok" });
+  });
 });
