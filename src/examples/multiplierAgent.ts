@@ -10,7 +10,7 @@ import { model, tool } from "../decorators";
  * It demonstrates a focused agent with a single capability.
  */
 @model("qwen/qwq-32b") // Specifies the LLM model for this agent
-export class MultiplierAgent extends Agent<string, string> {
+export class MultiplierAgent extends Agent<string> {
   /**
    * A tool that multiplies two numbers.
    * @param a - The first number.

@@ -24,24 +24,24 @@ describe("MultiplierAgent", () => {
     if (!process.env.RUN_LIVE) {
       // Mock agent.run for CI: deterministic answers
       jest.spyOn(agent, "run").mockImplementation(async (q: string) => {
-        if (/apples|oranges/i.test(q)) return "Sorry, I can only multiply numbers.";
+        if (/apples|oranges/i.test(q)) return { answer: "Sorry, I can only multiply numbers." };
         const match = q.match(/(-?\d+(?:\.\d+)?)\D+(-?\d+(?:\.\d+)?)/);
-        if (!match) return "Sorry, I can only multiply numbers.";
+        if (!match) return { answer: "Sorry, I can only multiply numbers." };
         const a = Number(match[1]);
         const b = Number(match[2]);
-        if (isNaN(a) || isNaN(b)) return "Sorry, I can only multiply numbers.";
-        return `The product of ${a} and ${b} is ${a * b}.`;
+        if (isNaN(a) || isNaN(b)) return { answer: "Sorry, I can only multiply numbers." };
+        return { answer: `The product of ${a} and ${b} is ${a * b}.` };
       });
     }
   });
 
   testCases.forEach(({ question, expected }) => {
     it(`returns expected result for: "${question}"`, async () => {
-      const answer = await agent.run(question);
+      const result = await agent.run(question);
       if (expected === "error") {
-        expect(answer.toLowerCase()).toContain("sorry");
+        expect(result.answer.toLowerCase()).toContain("sorry");
       } else {
-        expect(answer).toContain(expected);
+        expect(result.answer).toContain(expected);
       }
     });
   });

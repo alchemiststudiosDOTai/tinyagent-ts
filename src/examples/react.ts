@@ -11,7 +11,7 @@ import { Scratchpad } from '../utils/scratchpad';
  * using JSON tool calls.
  */
 @model('mistralai/mistral-small-3.1-24b-instruct:free')
-export class ReActAgent extends MultiStepAgent<string, string> {
+export class ReActAgent extends MultiStepAgent<string> {
   /**
    * Simple echo tool that returns the input text
    */

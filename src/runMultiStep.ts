@@ -1,4 +1,5 @@
 import { Agent, LLMMessage } from './agent';
+import { FinalAnswerArgs } from './final-answer.tool';
 import { findFirstJson } from './utils/json';
 
 export interface MultiStepOptions {
@@ -10,11 +11,11 @@ export interface ToolResultStep {
   output: string;
 }
 
-export async function runMultiStep<I = string, O = string>(
-  agent: Agent<I, O>,
+export async function runMultiStep<I = string>(
+  agent: Agent<I>,
   input: I,
   options: MultiStepOptions = {}
-): Promise<O> {
+): Promise<FinalAnswerArgs> {
   const { maxSteps = 6 } = options;
   const modelName = (agent as any).getModelName();
   const tools = (agent as any).buildToolRegistry();
@@ -35,20 +36,20 @@ export async function runMultiStep<I = string, O = string>(
     const jsonStr = findFirstJson(reply);
     if (!jsonStr) {
       // Non JSON => done
-      return reply as unknown as O;
+      return { answer: reply };
     }
     let parsed: any;
     try {
       parsed = JSON.parse(jsonStr);
     } catch {
-      return reply as unknown as O;
+      return { answer: reply };
     }
     if (parsed.tool === 'final_answer') {
-      return (parsed.args?.answer ?? '') as unknown as O;
+      return { answer: parsed.args?.answer ?? '' };
     }
     const selected = tools[parsed.tool];
     if (!selected) {
-      return (`Unknown tool: ${parsed.tool}`) as unknown as O;
+      return { answer: `Unknown tool: ${parsed.tool}` };
     }
     let result: any;
     try {
@@ -60,6 +61,6 @@ export async function runMultiStep<I = string, O = string>(
     messages.push({ role: 'assistant', content: reply });
     messages.push({ role: 'assistant', content: JSON.stringify({ observation: String(result) }) });
   }
-  return (scratch[scratch.length - 1]?.output ?? '') as unknown as O;
+  return { answer: scratch[scratch.length - 1]?.output ?? '' };
 }
 

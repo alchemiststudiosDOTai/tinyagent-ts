@@ -11,7 +11,7 @@ import { model, tool } from '../decorators';
  * to return the final result to the user.
  */
 @model('mistralai/mistral-small-3.1-24b-instruct:free')
-export class FinalAnswerDemoAgent extends Agent<string, any> {
+export class FinalAnswerDemoAgent extends Agent<string> {
   /**
    * A simple addition tool
    */
