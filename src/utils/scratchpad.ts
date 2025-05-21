@@ -1,4 +1,4 @@
-import {
+import type {
   ActionStep,
   CodeAction,
   JsonAction,
@@ -32,6 +32,10 @@ export class Scratchpad {
 
   addObservation(text: string): void {
     this.steps.push({ type: 'observation', text } as ObservationStep);
+  }
+
+  addToolResult(tool: string, output: string): void {
+    this.steps.push({ type: 'tool_result', tool, output });
   }
 
   addReflexion(text: string): void {
@@ -81,6 +85,12 @@ export class Scratchpad {
           msgs.push({
             role: 'assistant',
             content: `Observation: ${step.text}`,
+          });
+          break;
+        case 'tool_result':
+          msgs.push({
+            role: 'assistant',
+            content: `Observation: ${step.output}`,
           });
           break;
       }
