@@ -1,11 +1,12 @@
 // src/agent.ts
-import "reflect-metadata";
-import { META_KEYS, ToolMetadata } from "./decorators";
-import { PromptEngine } from "./promptEngine";
-import { FinalAnswerTool, FinalAnswerArgs } from "./final-answer.tool";
-import { AssistantReplySchema } from "./schemas";
+import 'reflect-metadata';
+import { META_KEYS, ToolMetadata } from './decorators';
+import { PromptEngine } from './promptEngine';
+import { FinalAnswerTool, FinalAnswerArgs } from './final-answer.tool';
+import { AssistantReplySchema } from './schemas';
 import { extractJson } from './utils/json';
-import { z } from "zod";
+import { truncateJson } from './utils/truncate';
+import { z } from 'zod';
 
 /**
  * Represents a tool's runtime information, including its metadata and
@@ -43,7 +44,7 @@ interface OpenRouterResponse {
  * @internal
  */
 export interface LLMMessage {
-  role: "system" | "user" | "assistant";
+  role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
@@ -71,17 +72,22 @@ export abstract class Agent<I = string> {
    * It requires the `OPENROUTER_API_KEY` environment variable to be set.
    * @throws Error if `OPENROUTER_API_KEY` is not found in the environment variables.
    */
-  constructor(options: { systemPrompt?: string; systemPromptFile?: string } = {}) {
+  constructor(
+    options: { systemPrompt?: string; systemPromptFile?: string } = {}
+  ) {
     const { systemPrompt, systemPromptFile } = options;
 
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       // TODO: Replace with AgentInitializationError
-      throw new Error("OPENROUTER_API_KEY environment variable is required");
+      throw new Error('OPENROUTER_API_KEY environment variable is required');
     }
     this.apiKey = apiKey;
     this.customSystemPrompt = systemPrompt;
-    this.promptEngine = new PromptEngine({}, systemPromptFile ? { agent: systemPromptFile } : {});
+    this.promptEngine = new PromptEngine(
+      {},
+      systemPromptFile ? { agent: systemPromptFile } : {}
+    );
   }
 
   /**
@@ -94,11 +100,11 @@ export abstract class Agent<I = string> {
   protected getModelName(): string {
     const id: string | undefined = Reflect.getMetadata(
       META_KEYS.MODEL,
-      this.constructor,
+      this.constructor
     );
     if (!id) {
       // TODO: Replace with AgentConfigurationError
-      throw new Error("Missing @model decorator on the Agent class.");
+      throw new Error('Missing @model decorator on the Agent class.');
     }
     return id;
   }
@@ -123,12 +129,13 @@ export abstract class Agent<I = string> {
               const parsed = m.schema.parse(args);
               return await (this as any)[m.method](parsed);
             } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
+              const message =
+                error instanceof Error ? error.message : String(error);
               throw new Error(`Error executing tool "${m.name}": ${message}`);
             }
           },
         },
-      ]),
+      ])
     );
 
     const finalTool = new FinalAnswerTool();
@@ -136,7 +143,7 @@ export abstract class Agent<I = string> {
       meta: {
         name: finalTool.name,
         description: finalTool.description,
-        method: "forward",
+        method: 'forward',
         schema: finalTool.schema,
       },
       call: async (args: Record<string, unknown>) => {
@@ -158,23 +165,23 @@ export abstract class Agent<I = string> {
    */
   protected async makeOpenRouterRequest(
     messages: LLMMessage[],
-    model: string,
+    model: string
   ): Promise<OpenRouterResponse> {
     try {
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           // TODO: Make these configurable or remove/improve defaults
-          "HTTP-Referer": "https://github.com/yourusername/tinyagent-ts",
-          "X-Title": "TinyAgent-TS",
+          'HTTP-Referer': 'https://github.com/yourusername/tinyagent-ts',
+          'X-Title': 'TinyAgent-TS',
         },
         body: JSON.stringify({ model, messages }),
       });
 
       if (!res.ok) {
-        let errorDetails: any = { message: "Failed to parse error response" };
+        let errorDetails: any = { message: 'Failed to parse error response' };
         try {
           errorDetails = await res.json();
         } catch (parseError) {
@@ -182,7 +189,7 @@ export abstract class Agent<I = string> {
         }
         // TODO: Replace with LLMCommunicationError
         throw new Error(
-          `OpenRouter API error: ${res.status} ${res.statusText}. Details: ${JSON.stringify(errorDetails)}`,
+          `OpenRouter API error: ${res.status} ${res.statusText}. Details: ${JSON.stringify(errorDetails)}`
         );
       }
 
@@ -192,18 +199,18 @@ export abstract class Agent<I = string> {
       // Perform type checks before accessing properties
       if (
         !data ||
-        typeof data !== "object" ||
+        typeof data !== 'object' ||
         !data.choices ||
         !Array.isArray(data.choices) ||
         data.choices.length === 0 ||
-        typeof data.choices[0]?.message?.content !== "string" // Check nested structure
+        typeof data.choices[0]?.message?.content !== 'string' // Check nested structure
       ) {
         console.error(
-          "Invalid OpenRouter response structure:",
-          JSON.stringify(data),
+          'Invalid OpenRouter response structure:',
+          JSON.stringify(data)
         );
         throw new Error(
-          "Invalid response structure received from OpenRouter API",
+          'Invalid response structure received from OpenRouter API'
         );
       }
       // Now it's safer to assert the type
@@ -226,9 +233,9 @@ export abstract class Agent<I = string> {
     const modelName = this.getModelName();
     const tools = this.buildToolRegistry();
     const toolCatalog = Object.values(tools)
-      .filter((t) => t.meta.name !== "final_answer")
+      .filter((t) => t.meta.name !== 'final_answer')
       .map((t) => `- ${t.meta.name}: ${t.meta.description}`)
-      .join("\n");
+      .join('\n');
 
     // Use new helper to build initial messages
     if (this.memory.length === 0) {
@@ -237,17 +244,21 @@ export abstract class Agent<I = string> {
         this.memory.push(msg);
       }
     } else {
-      this.memory.push({ role: "user", content: String(input) });
+      this.memory.push({ role: 'user', content: String(input) });
     }
 
     const finalTool = new FinalAnswerTool();
     const maxSteps = 5;
     let usedTool = false;
+    const MAX_BAD_CALLS = 2;
     let badToolCalls = 0;
 
     for (let step = 0; step < maxSteps; step++) {
-      const responseBody = await this.makeOpenRouterRequest(this.memory, modelName);
-      const rawReply = responseBody.choices[0]?.message?.content?.trim() ?? "";
+      const responseBody = await this.makeOpenRouterRequest(
+        this.memory,
+        modelName
+      );
+      const rawReply = responseBody.choices[0]?.message?.content?.trim() ?? '';
 
       let parsed: any;
       let validation: any;
@@ -257,22 +268,31 @@ export abstract class Agent<I = string> {
           parsed = JSON.parse(jsonText);
           validation = AssistantReplySchema.safeParse(parsed);
         } catch (err) {
-          validation = { success: false, error: new Error("Invalid JSON") };
+          validation = { success: false, error: new Error('Invalid JSON') };
         }
       } else {
-        validation = { success: false, error: new Error("Invalid JSON") };
+        validation = { success: false, error: new Error('Invalid JSON') };
       }
 
       if (!validation.success) {
-        const { fixed, fixedParsed } = await this.retryWithFixRequest(rawReply, validation.error);
+        const { fixed, fixedParsed } = await this.retryWithFixRequest(
+          rawReply,
+          validation.error
+        );
         if (!fixedParsed) {
-          this.memory.push({ role: "assistant", content: `ERROR: Unable to produce valid schema output.` });
+          this.memory.push({
+            role: 'assistant',
+            content: `ERROR: Unable to produce valid schema output.`,
+          });
           return { answer: String(fixed) };
         }
         parsed = fixedParsed;
-        this.memory.push({ role: "assistant", content: JSON.stringify(parsed) });
+        this.memory.push({
+          role: 'assistant',
+          content: JSON.stringify(parsed),
+        });
       } else {
-        this.memory.push({ role: "assistant", content: rawReply });
+        this.memory.push({ role: 'assistant', content: rawReply });
       }
 
       const toolName = parsed.tool;
@@ -280,7 +300,7 @@ export abstract class Agent<I = string> {
 
       if (toolName === finalTool.name) {
         if (!usedTool) {
-          console.warn("final_answer called before any other tool");
+          console.warn('final_answer called before any other tool');
         }
         const validated = finalTool.schema.parse(toolArgs ?? {});
         const answer = await finalTool.forward(validated);
@@ -290,11 +310,15 @@ export abstract class Agent<I = string> {
       const selectedTool = tools[toolName];
       if (!selectedTool) {
         badToolCalls++;
-        const errorMsg = `Error: LLM requested unknown tool "${toolName}". Available tools: ${Object.keys(tools).join(", ")}`;
-        if (badToolCalls >= 2) {
-          return { answer: `${errorMsg} (too many unknown tools)` };
+        const msg = `Tool ${toolName} not found.`;
+        if (badToolCalls >= MAX_BAD_CALLS) {
+          return { answer: `${msg} (too many bad tool calls)` };
         }
-        this.memory.push({ role: "assistant", content: errorMsg });
+        this.logger.debug(`step ${step} → ${toolName} ERROR`, msg);
+        this.memory.push({
+          role: 'assistant',
+          content: JSON.stringify({ observation: msg }),
+        });
         continue;
       }
 
@@ -302,46 +326,49 @@ export abstract class Agent<I = string> {
       try {
         toolResult = await selectedTool.call(toolArgs);
         usedTool = true;
+        const out = truncateJson(toolResult);
+        this.logger.debug(`step ${step} → ${toolName}`, out);
+        this.memory.push({
+          role: 'assistant',
+          content: JSON.stringify({ observation: out }),
+        });
       } catch (error) {
+        badToolCalls++;
+        let msg = '';
         if (error instanceof z.ZodError) {
-          const { fixed, fixedParsed } = await this.retryWithFixRequest(
-            JSON.stringify({ tool: toolName, args: toolArgs }),
-            error
-          );
-          if (!fixedParsed || fixedParsed.tool !== toolName) {
-            this.memory.push({ role: "assistant", content: `ERROR: Unable to produce valid tool arguments for "${toolName}".` });
-            return { answer: String(fixed) };
-          }
-          try {
-            toolResult = await selectedTool.call(fixedParsed.args);
-          } catch (err2) {
-            this.memory.push({ role: "assistant", content: `ERROR: Tool argument validation failed again for "${toolName}".` });
-            return { answer: err2 instanceof Error ? err2.message : String(err2) };
-          }
-          this.logger.debug(`step ${step} → ${toolName}`);
-          this.memory.push({ role: "assistant", content: JSON.stringify({ observation: toolResult }) });
-          continue;
+          const issue = error.issues[0];
+          msg =
+            `Tool ${toolName} failed: '${issue?.path.join('.')}' ${issue?.message}`.trim();
+        } else {
+          msg = `Tool ${toolName} failed: ${error instanceof Error ? error.message : String(error)}`;
         }
-        this.memory.push({ role: "assistant", content: `ERROR: Tool execution failed for "${toolName}": ${error instanceof Error ? error.message : String(error)}` });
-        continue;
+        if (badToolCalls >= MAX_BAD_CALLS) {
+          return { answer: `${msg} (too many bad tool calls)` };
+        }
+        this.logger.debug(`step ${step} → ${toolName} ERROR`, msg);
+        this.memory.push({
+          role: 'assistant',
+          content: JSON.stringify({ observation: msg }),
+        });
       }
-
-      this.logger.debug(`step ${step} → ${toolName}`);
-      this.memory.push({ role: "assistant", content: JSON.stringify({ observation: toolResult }) });
       continue;
     }
 
-    throw new Error(`Loop exceeded ${maxSteps} steps without final_answer call.`);
+    throw new Error(
+      `Loop exceeded ${maxSteps} steps without final_answer call.`
+    );
   }
   /**
    * Helper to build the initial LLM messages (system + user).
    */
   private buildInitialMessages(input: I, toolCatalog: string): LLMMessage[] {
-    const defaultPrompt = this.promptEngine.render("agent", { tools: toolCatalog });
+    const defaultPrompt = this.promptEngine.render('agent', {
+      tools: toolCatalog,
+    });
     const systemPrompt = this.customSystemPrompt ?? defaultPrompt;
     return [
-      { role: "system" as const, content: systemPrompt },
-      { role: "user" as const, content: String(input) }
+      { role: 'system' as const, content: systemPrompt },
+      { role: 'user' as const, content: String(input) },
     ];
   }
 
@@ -349,18 +376,32 @@ export abstract class Agent<I = string> {
    * Helper to retry LLM output with a fix request if schema validation fails.
    * Prompts the LLM to correct its output to match the AssistantReplySchema.
    */
-  private async retryWithFixRequest(rawReply: string, error: unknown): Promise<{ fixed: string, fixedParsed: any }> {
+  private async retryWithFixRequest(
+    rawReply: string,
+    error: unknown
+  ): Promise<{ fixed: string; fixedParsed: any }> {
     // Compose a retry prompt
     const schemaString = AssistantReplySchema.toString();
-    const errorMsg = error instanceof z.ZodError ? error.toString() : String(error);
+    const errorMsg =
+      error instanceof z.ZodError ? error.toString() : String(error);
     const retryPrompt: LLMMessage[] = [
-      { role: "system", content: "Your previous response did not match the required schema. Please fix your output to match the following schema exactly:\n\n" + schemaString + "\n\nValidation error:\n" + errorMsg },
-      { role: "user", content: rawReply }
+      {
+        role: 'system',
+        content:
+          'Your previous response did not match the required schema. Please fix your output to match the following schema exactly:\n\n' +
+          schemaString +
+          '\n\nValidation error:\n' +
+          errorMsg,
+      },
+      { role: 'user', content: rawReply },
     ];
     // Call LLM with retry prompt
     const modelName = this.getModelName();
-    const responseBody = await this.makeOpenRouterRequest(retryPrompt, modelName);
-    const fixed = responseBody.choices[0]?.message?.content?.trim() ?? "";
+    const responseBody = await this.makeOpenRouterRequest(
+      retryPrompt,
+      modelName
+    );
+    const fixed = responseBody.choices[0]?.message?.content?.trim() ?? '';
     let fixedParsed: any = null;
     try {
       fixedParsed = JSON.parse(fixed);

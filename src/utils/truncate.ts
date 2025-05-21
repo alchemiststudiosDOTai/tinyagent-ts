@@ -1,20 +1,4 @@
-export function truncateJson<T>(value: T, maxLen = 1000): T {
-  const seen = new WeakSet();
-  const visit = (v: any): any => {
-    if (typeof v === 'string') {
-      return v.length > maxLen ? v.slice(0, maxLen) + '...' : v;
-    }
-    if (Array.isArray(v)) return v.map(visit);
-    if (v && typeof v === 'object') {
-      if (seen.has(v)) return v;
-      seen.add(v);
-      const out: any = {};
-      for (const [k, val] of Object.entries(v)) {
-        out[k] = visit(val);
-      }
-      return out;
-    }
-    return v;
-  };
-  return visit(value);
+export function truncateJson(value: unknown, maxLen = 3000): string {
+  const text = typeof value === 'string' ? value : JSON.stringify(value);
+  return text.length > maxLen ? '<too large to show>' : text;
 }
