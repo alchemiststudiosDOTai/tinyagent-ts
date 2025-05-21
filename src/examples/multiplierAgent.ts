@@ -2,8 +2,8 @@ import * as dotenv from "dotenv";
 dotenv.config(); // Load environment variables from .env file
 
 import { z } from "zod";
-import { Agent } from "./agent";
-import { model, tool } from "./decorators";
+import { Agent } from "../agent";
+import { model, tool } from "../decorators";
 
 /**
  * An example agent specifically designed to multiply numbers using a tool.

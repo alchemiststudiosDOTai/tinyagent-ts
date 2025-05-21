@@ -1,6 +1,6 @@
 import * as dotenv from "dotenv";
 dotenv.config();
-import { MultiplierAgent } from "../src/multiplierAgent";
+import { MultiplierAgent } from "../src/examples/multiplierAgent";
 
 // Type-safe, immutable test cases
 const testCases = [
