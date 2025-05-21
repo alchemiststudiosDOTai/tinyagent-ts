@@ -1,5 +1,5 @@
 import { Agent, LLMMessage } from './agent';
-import { FinalAnswerArgs } from './final-answer.tool';
+import { FinalAnswerArgs, FinalAnswerTool } from './final-answer.tool';
 import { findFirstJson } from './utils/json';
 
 export interface MultiStepOptions {
@@ -45,7 +45,10 @@ export async function runMultiStep<I = string>(
       return { answer: reply };
     }
     if (parsed.tool === 'final_answer') {
-      return { answer: parsed.args?.answer ?? '' };
+      const finalTool = new FinalAnswerTool();
+      const args = finalTool.schema.parse(parsed.args ?? {});
+      const out = await finalTool.forward(args);
+      return out;
     }
     const selected = tools[parsed.tool];
     if (!selected) {

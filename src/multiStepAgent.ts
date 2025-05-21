@@ -79,14 +79,13 @@ export class MultiStepAgent<I = string> extends Agent<I> {
             if (!usedTool) {
               console.warn('final_answer called before any other tool');
             }
-            // Ensure args has the required 'answer' property for FinalAnswerInput
-            const finalAnswerArgs = { answer: action.args.answer as string };
-            const finalAnswer = await finalTool.forward(finalAnswerArgs);
+            const validated = finalTool.schema.parse(action.args ?? {});
+            const finalAnswer = await finalTool.forward(validated);
             observation = typeof finalAnswer === 'object' ? JSON.stringify(finalAnswer) : String(finalAnswer);
             this.scratchpad.addObservation(observation);
             this.log(undefined, undefined, observation);
             if (this.onStep) this.onStep(this.scratchpad);
-            return { answer: action.args.answer as string };
+            return validated;
           }
           const tool = tools[action.tool];
           if (!tool) {
@@ -126,9 +125,8 @@ export class MultiStepAgent<I = string> extends Agent<I> {
             if (!usedTool) {
               console.warn('final_answer called before any other tool');
             }
-            // Ensure args has the required 'answer' property for FinalAnswerInput
-            const finalAnswerArgs = { answer: fixAction.args.answer as string };
-            const finalAnswer = await finalTool.forward(finalAnswerArgs);
+            const validated = finalTool.schema.parse(fixAction.args ?? {});
+            const finalAnswer = await finalTool.forward(validated);
             const obs =
               typeof finalAnswer === 'object'
                 ? JSON.stringify(finalAnswer)
@@ -136,7 +134,7 @@ export class MultiStepAgent<I = string> extends Agent<I> {
             this.scratchpad.addObservation(obs);
             this.log(undefined, undefined, obs);
             if (this.onStep) this.onStep(this.scratchpad);
-            return { answer: fixAction.args.answer as string };
+            return validated;
           }
           const tool = tools[fixAction.tool];
           let obs = '';
