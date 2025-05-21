@@ -4,6 +4,7 @@ import { META_KEYS, ToolMetadata } from "./decorators";
 import { PromptEngine } from "./promptEngine";
 import { FinalAnswerTool, FinalAnswerArgs } from "./final-answer.tool";
 import { AssistantReplySchema } from "./schemas";
+import { findFirstJson } from './utils/json';
 import { z } from "zod";
 import { compileValidator } from './utils/validator';
 
@@ -252,11 +253,15 @@ export abstract class Agent<I = string> {
 
       let parsed: any;
       let validation: any;
-
-      try {
-        parsed = JSON.parse(rawReply);
-        validation = AssistantReplySchema.safeParse(parsed);
-      } catch (err) {
+      const jsonText = findFirstJson(rawReply);
+      if (jsonText) {
+        try {
+          parsed = JSON.parse(jsonText);
+          validation = AssistantReplySchema.safeParse(parsed);
+        } catch (err) {
+          validation = { success: false, error: new Error("Invalid JSON") };
+        }
+      } else {
         validation = { success: false, error: new Error("Invalid JSON") };
       }
 
@@ -279,7 +284,8 @@ export abstract class Agent<I = string> {
         if (!usedTool) {
           console.warn("final_answer called before any other tool");
         }
-        const answer = await finalTool.forward(toolArgs);
+        const validated = finalTool.schema.parse(toolArgs ?? {});
+        const answer = await finalTool.forward(validated);
         return answer;
       }
 
