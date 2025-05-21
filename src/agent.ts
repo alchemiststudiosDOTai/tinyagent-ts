@@ -4,6 +4,8 @@ import { ZodError } from "zod"; // Removed unused 'z' and 'ZodSchema'
 import { META_KEYS, ToolMetadata } from "./decorators";
 import { PromptEngine } from "./promptEngine";
 import { FinalAnswerTool } from "./final-answer.tool";
+import { AssistantReplySchema } from "./schemas";
+import { z } from "zod";
 
 /**
  * Represents a tool's runtime information, including its metadata and
@@ -221,69 +223,155 @@ export abstract class Agent<I = string, O = string> {
       .map((t) => `- ${t.meta.name}: ${t.meta.description}`)
       .join("\n");
 
-    const defaultPrompt = this.promptEngine.render("agent", { tools: toolCatalog });
-    const systemPrompt = this.customSystemPrompt ?? defaultPrompt;
-
+    // Use new helper to build initial messages
     if (this.memory.length === 0) {
-      this.memory.push({ role: "system", content: systemPrompt });
+      const initialMessages = this.buildInitialMessages(input, toolCatalog);
+      for (const msg of initialMessages) {
+        this.memory.push(msg);
+      }
+    } else {
+      this.memory.push({ role: "user", content: String(input) });
     }
-
-    this.memory.push({ role: "user", content: String(input) });
 
     const finalTool = new FinalAnswerTool();
     const maxSteps = 5;
 
+    let lastValidReply: any = null;
+
     for (let step = 0; step < maxSteps; step++) {
       const responseBody = await this.makeOpenRouterRequest(this.memory, modelName);
-      const reply = responseBody.choices[0]?.message?.content?.trim() ?? "";
-      this.memory.push({ role: "assistant", content: reply });
+      const rawReply = responseBody.choices[0]?.message?.content?.trim() ?? "";
+      let parsed: any;
+      let validation = null;
 
-      if (
-        reply.startsWith("{") &&
-        reply.endsWith("}") &&
-        reply.includes('"tool"')
-      ) {
-        try {
-          const parsedJson = JSON.parse(reply);
-          if (
-            typeof parsedJson.tool !== "string" ||
-            typeof parsedJson.args !== "object" ||
-            parsedJson.args === null
-          ) {
-            throw new Error("Invalid tool call format in LLM response.");
-          }
-          const { tool: toolName, args: toolArgs } = parsedJson as {
-            tool: string;
-            args: Record<string, unknown>;
-          };
-
-          if (toolName === finalTool.name) {
-            const answer = await finalTool.forward(toolArgs);
-            return answer as O;
-          }
-
-          const selectedTool = tools[toolName];
-
-          if (!selectedTool) {
-            const errorMsg = `Error: LLM requested unknown tool "${toolName}". Available tools: ${Object.keys(tools).join(", ")}`;
-            this.memory.push({ role: "assistant", content: errorMsg });
-            return errorMsg as unknown as O;
-          }
-
-          const toolResult = await selectedTool.call(toolArgs);
-          this.memory.push({ role: "assistant", content: `TOOL_RESULT: ${JSON.stringify(toolResult)}` });
-          continue; // Next loop iteration with updated memory
-        } catch (error: unknown) {
-          const message = error instanceof Error ? error.message : String(error);
-          this.memory.push({ role: "assistant", content: `ERROR: ${message}` });
-          return reply as unknown as O;
-        }
+      try {
+        parsed = JSON.parse(rawReply);
+        validation = AssistantReplySchema.safeParse(parsed);
+      } catch (err) {
+        validation = { success: false, error: new Error("Invalid JSON") };
       }
 
-      return reply as unknown as O;
+      if (!validation || !validation.success) {
+        // Retry with fix request
+        const { fixed, fixedParsed } = await this.retryWithFixRequest(rawReply, validation?.error);
+        if (!fixedParsed) {
+          // If still invalid, return the last valid reply or error
+          this.memory.push({ role: "assistant", content: `ERROR: Unable to produce valid schema output.` });
+          return fixed as unknown as O;
+        }
+        parsed = fixedParsed;
+        this.memory.push({ role: "assistant", content: JSON.stringify(parsed) });
+      } else {
+        this.memory.push({ role: "assistant", content: rawReply });
+      }
+
+      // At this point, parsed is valid per schema
+      lastValidReply = parsed;
+
+      if ("tool" in parsed) {
+        const toolName = parsed.tool;
+        const toolArgs = parsed.args;
+
+        if (toolName === finalTool.name) {
+          const answer = await finalTool.forward(toolArgs);
+          return answer as O;
+        }
+
+        const selectedTool = tools[toolName];
+
+        if (!selectedTool) {
+          const errorMsg = `Error: LLM requested unknown tool "${toolName}". Available tools: ${Object.keys(tools).join(", ")}`;
+          this.memory.push({ role: "assistant", content: errorMsg });
+          return errorMsg as unknown as O;
+        }
+
+        let toolResult;
+        try {
+          toolResult = await selectedTool.call(toolArgs);
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            // Retry with fix request for tool arguments
+            const { fixed, fixedParsed } = await this.retryWithFixRequest(
+              JSON.stringify({ tool: toolName, args: toolArgs }),
+              error
+            );
+            if (!fixedParsed || !("tool" in fixedParsed) || fixedParsed.tool !== toolName) {
+              this.memory.push({ role: "assistant", content: `ERROR: Unable to produce valid tool arguments for "${toolName}".` });
+              return fixed as unknown as O;
+            }
+            try {
+              toolResult = await selectedTool.call(fixedParsed.args);
+            } catch (err2) {
+              this.memory.push({ role: "assistant", content: `ERROR: Tool argument validation failed again for "${toolName}".` });
+              return (err2 instanceof Error ? err2.message : String(err2)) as unknown as O;
+            }
+            this.memory.push({ role: "assistant", content: `TOOL_RESULT: ${JSON.stringify(toolResult)}` });
+            continue; // Next loop iteration with updated memory
+          } else {
+            this.memory.push({ role: "assistant", content: `ERROR: Tool execution failed for "${toolName}": ${error instanceof Error ? error.message : String(error)}` });
+            return (error instanceof Error ? error.message : String(error)) as unknown as O;
+          }
+        }
+        this.memory.push({ role: "assistant", content: `TOOL_RESULT: ${JSON.stringify(toolResult)}` });
+        continue; // Next loop iteration with updated memory
+      } else if ("answer" in parsed) {
+        console.log("[Agent.run] Returning parsed object (with answer):", parsed, "Type:", typeof parsed);
+        return parsed as unknown as O;
+      } else {
+        // Should not happen due to schema, but fallback
+        console.log("[Agent.run] Fallback: Returning stringified parsed object:", parsed, "Type:", typeof parsed);
+        this.memory.push({ role: "assistant", content: `ERROR: Unexpected schema output.` });
+        return parsed as unknown as O;
+      }
     }
 
     // Step limit reached
-    return this.memory[this.memory.length - 1]?.content as unknown as O;
+    if (lastValidReply) {
+      console.log("[Agent.run] Step limit reached. Returning lastValidReply as object:", lastValidReply, "Type:", typeof lastValidReply);
+      return lastValidReply as unknown as O;
+    } else {
+      console.log("[Agent.run] Step limit reached. Returning last memory content:", this.memory[this.memory.length - 1]?.content, "Type:", typeof this.memory[this.memory.length - 1]?.content);
+      return this.memory[this.memory.length - 1]?.content as unknown as O;
+    }
+  }
+  /**
+   * Helper to build the initial LLM messages (system + user).
+   */
+  private buildInitialMessages(input: I, toolCatalog: string): LLMMessage[] {
+    const defaultPrompt = this.promptEngine.render("agent", { tools: toolCatalog });
+    const systemPrompt = this.customSystemPrompt ?? defaultPrompt;
+    return [
+      { role: "system" as const, content: systemPrompt },
+      { role: "user" as const, content: String(input) }
+    ];
+  }
+
+  /**
+   * Helper to retry LLM output with a fix request if schema validation fails.
+   * Prompts the LLM to correct its output to match the AssistantReplySchema.
+   */
+  private async retryWithFixRequest(rawReply: string, error: unknown): Promise<{ fixed: string, fixedParsed: any }> {
+    // Compose a retry prompt
+    const schemaString = AssistantReplySchema.toString();
+    const errorMsg = error instanceof z.ZodError ? error.toString() : String(error);
+    const retryPrompt: LLMMessage[] = [
+      { role: "system", content: "Your previous response did not match the required schema. Please fix your output to match the following schema exactly:\n\n" + schemaString + "\n\nValidation error:\n" + errorMsg },
+      { role: "user", content: rawReply }
+    ];
+    // Call LLM with retry prompt
+    const modelName = this.getModelName();
+    const responseBody = await this.makeOpenRouterRequest(retryPrompt, modelName);
+    const fixed = responseBody.choices[0]?.message?.content?.trim() ?? "";
+    let fixedParsed: any = null;
+    try {
+      fixedParsed = JSON.parse(fixed);
+      const validation = AssistantReplySchema.safeParse(fixedParsed);
+      if (!validation.success) {
+        fixedParsed = null;
+      }
+    } catch {
+      fixedParsed = null;
+    }
+    return { fixed, fixedParsed };
   }
 }
