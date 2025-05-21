@@ -24,16 +24,36 @@ export function safeJsonParse<T>(str: string): T | null {
   }
 }
 
+function findJsonBlocks(text: string): string[] {
+  const blocks: string[] = [];
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== '{') continue;
+    let depth = 0;
+    for (let j = i; j < text.length; j++) {
+      if (text[j] === '{') depth++;
+      if (text[j] === '}') {
+        depth--;
+        if (depth === 0) {
+          blocks.push(text.slice(i, j + 1));
+          i = j;
+          break;
+        }
+      }
+    }
+  }
+  return blocks;
+}
+
 export function extractJson(text: string): string | null {
-  const blocks = Array.from(text.matchAll(/```(?:json)?\s*\n([\s\S]*?)```/gi)).map(
-    (m) => m[1],
-  );
-  blocks.push(text);
-  for (const b of blocks) {
-    const candidate = findFirstJson(b);
-    if (!candidate) continue;
-    if (safeJsonParse(candidate)) return candidate;
+  const chunks = Array.from(
+    text.matchAll(/```(?:json)?\s*\n([\s\S]*?)```/gi)
+  ).map((m) => m[1]);
+  chunks.push(text);
+  for (const chunk of chunks) {
+    const blocks = findJsonBlocks(chunk);
+    for (const candidate of blocks) {
+      if (safeJsonParse(candidate)) return candidate;
+    }
   }
   return null;
 }
-

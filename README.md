@@ -42,6 +42,9 @@ Example prompt/response:
 {"tool":"final_answer","args":{"answer":"3"}}
 ```
 
+Every tool call is followed by an `{ "observation": ... }` message from the agent.
+Reply with another JSON action or finish with `final_answer`.
+
 By default the agent makes a single tool call. Increase `maxSteps` in
 `MultiStepAgent` (or `runMultiStep`) if you expect longer chains.
 
@@ -59,7 +62,7 @@ Agents expect the very last message from the model to be a JSON object calling `
 
 Trailing narration is ignored, so ensure the JSON appears on its own line if possible.
 
-The agent demos will ask an LLM (via OpenRouter) whether it should answer directly or call one of its local tools, then print the final reply. The `multiplierAgent.ts` specifically uses `dotenv` to load the key from the `.env` file. The `TriageAgent` simply lists your available tools and prompts you to pick one.
+The agent runs in a small loop: tool call → observation → new tool call, up to a few steps. If the model keeps choosing bad tools or invalid arguments twice in a row, the loop stops with an error message. The `multiplierAgent.ts` demo uses `dotenv` to load the key from the `.env` file, while `TriageAgent` simply lists your available tools.
 
 ---
 

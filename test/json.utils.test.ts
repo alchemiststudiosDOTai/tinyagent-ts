@@ -11,6 +11,7 @@ describe('extractJson', () => {
       expected: '{"a":1}',
     },
     { input: '{} just braces {"x":1}', expected: '{}' },
+    { input: '{"a": } {"b":2}', expected: '{"b":2}' },
   ] as const;
 
   it.each(cases)('extracts JSON from %p', ({ input, expected }) => {
