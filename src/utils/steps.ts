@@ -33,9 +33,16 @@ export interface ReflexionStep {
   text: string;
 }
 
+export interface ToolResultStep {
+  type: 'tool_result';
+  tool: string;
+  output: string;
+}
+
 export type ScratchStep =
   | TaskStep
   | ThoughtStep
   | ActionStep
   | ObservationStep
-  | ReflexionStep;
+  | ReflexionStep
+  | ToolResultStep;
