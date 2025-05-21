@@ -48,6 +48,7 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
     const modelName = this.getModelName();
     const tools = this.buildToolRegistry();
     const toolCatalog = Object.values(tools)
+      .filter((t) => t.meta.name !== 'final_answer')
       .map((t) => `- ${t.meta.name}: ${t.meta.description}`)
       .join('\n');
     const defaultPrompt = this.promptEngine.render('react', {
@@ -59,6 +60,7 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
     this.scratchpad.setTask(String(task));
 
     const finalTool = new FinalAnswerTool();
+    let usedTool = false;
 
     for (let step = 0; step < this.maxSteps; step++) {
       const messages: LLMMessage[] = this.scratchpad.toMessages(systemPrompt);
@@ -74,6 +76,9 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
       try {
         if (action && action.mode === 'json') {
           if (action.tool === finalTool.name) {
+            if (!usedTool) {
+              console.warn('final_answer called before any other tool');
+            }
             const finalAnswer = await finalTool.forward(action.args);
             observation = typeof finalAnswer === 'object' ? JSON.stringify(finalAnswer) : String(finalAnswer);
             this.scratchpad.addObservation(observation);
@@ -86,6 +91,7 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
             observation = `Unknown tool: ${action.tool}`;
           } else {
             const result = await tool.call(action.args);
+            usedTool = true;
             observation = JSON.stringify(result);
           }
         } else if (action) {
@@ -115,6 +121,9 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
       if (fixAction) {
         if (fixAction.mode === 'json') {
           if (fixAction.tool === finalTool.name) {
+            if (!usedTool) {
+              console.warn('final_answer called before any other tool');
+            }
             const finalAnswer = await finalTool.forward(fixAction.args);
             const obs =
               typeof finalAnswer === 'object'
@@ -132,6 +141,7 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
               obs = `Unknown tool: ${fixAction.tool}`;
             } else {
               const result = await tool.call(fixAction.args);
+              usedTool = true;
               obs = JSON.stringify(result);
             }
           } catch (err) {

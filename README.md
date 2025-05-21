@@ -70,13 +70,13 @@ The agent demos will ask an LLM (via OpenRouter) whether it should answer direct
 
    1. Build a _system prompt_ that lists every tool.
    2. Send `[system, user]` messages to the chosen LLM (`@model`).
-   3. The LLM must always respond with a JSON tool call:
+   3. The LLM must respond with a JSON tool call **for every step**:
 
       - Validates `args` using the stored Zod schema.
       - Executes the bound class method.
       - Sends `TOOL_RESULT` back to the model for a polished answer.
 
-   4. The conversation ends when the model calls the `final_answer` tool with the final text.
+   4. The conversation ends **only** when the model calls the `final_answer` tool with the final text.
 
 ```mermaid
 flowchart TB

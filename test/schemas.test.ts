@@ -1,4 +1,4 @@
-import { ToolCallSchema, DirectAnswerSchema, AssistantReplySchema } from "../src/schemas";
+import { ToolCallSchema, AssistantReplySchema } from "../src/schemas";
 
 describe("ToolCallSchema", () => {
   it("accepts a valid tool call", () => {
@@ -26,31 +26,6 @@ describe("ToolCallSchema", () => {
   });
 });
 
-describe("DirectAnswerSchema", () => {
-  it("accepts a valid direct answer", () => {
-    const data = { answer: "42" };
-    const result = DirectAnswerSchema.safeParse(data);
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects extra keys", () => {
-    const data = { answer: "42", foo: "bar" };
-    const result = DirectAnswerSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects missing required keys", () => {
-    const data = {};
-    const result = DirectAnswerSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects wrong types", () => {
-    const data = { answer: 42 };
-    const result = DirectAnswerSchema.safeParse(data);
-    expect(result.success).toBe(false);
-  });
-});
 
 describe("AssistantReplySchema", () => {
   it("accepts a valid tool call", () => {

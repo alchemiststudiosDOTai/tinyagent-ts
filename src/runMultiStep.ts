@@ -1,5 +1,4 @@
 import { Agent, LLMMessage } from './agent';
-import { z } from 'zod';
 import { findFirstJson } from './utils/json';
 
 export interface MultiStepOptions {
@@ -19,18 +18,8 @@ export async function runMultiStep<I = string, O = string>(
   const { maxSteps = 6 } = options;
   const modelName = (agent as any).getModelName();
   const tools = (agent as any).buildToolRegistry();
-  // Virtual FINISH tool
-  tools.FINISH = {
-    meta: {
-      name: 'FINISH',
-      description: 'End the conversation',
-      method: 'FINISH',
-      schema: z.object({})
-    },
-    call: async () => ''
-  };
   const toolCatalog = Object.values(tools)
-    .filter((t: any) => t.meta.name !== 'FINISH')
+    .filter((t: any) => t.meta.name !== 'final_answer')
     .map((t: any) => `- ${t.meta.name}: ${t.meta.description}`)
     .join('\n');
   const system = (agent as any).promptEngine.render('agent', { tools: toolCatalog });
@@ -54,7 +43,7 @@ export async function runMultiStep<I = string, O = string>(
     } catch {
       return reply as unknown as O;
     }
-    if (parsed.tool === 'FINISH') {
+    if (parsed.tool === 'final_answer') {
       return (parsed.args?.answer ?? '') as unknown as O;
     }
     const selected = tools[parsed.tool];
