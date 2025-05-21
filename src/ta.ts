@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { MultiplierAgent } from "./examples/multiplierAgent";
+import { MultiplierAgent } from "../examples/multiplierAgent";
 
 (async () => {
   const agent = new MultiplierAgent({ systemPromptFile: process.argv[2] });

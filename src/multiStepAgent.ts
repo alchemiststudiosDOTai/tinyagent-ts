@@ -91,7 +91,25 @@ export class MultiStepAgent<I = string> extends Agent<I> {
           if (!tool) {
             observation = `Unknown tool: ${action.tool}`;
           } else {
-            const result = await tool.call(action.args);
+            // Auto-fill missing arguments from scratchpad if possible
+            let toolArgs = { ...action.args };
+            // Get argument keys from schema if possible (ZodObject), else from args
+            let argKeys: string[] = [];
+            const schema: any = tool.meta.schema;
+            if (schema && typeof schema.shape === 'object') {
+              argKeys = Object.keys(schema.shape);
+            } else if (toolArgs && typeof toolArgs === 'object') {
+              argKeys = Object.keys(toolArgs);
+            }
+            for (const key of argKeys) {
+              if (toolArgs[key] === undefined) {
+                const lastValue = this.scratchpad.getLastArgValue(key);
+                if (lastValue !== undefined) {
+                  toolArgs[key] = lastValue;
+                }
+              }
+            }
+            const result = await tool.call(toolArgs);
             usedTool = true;
             observation = JSON.stringify(result);
           }

@@ -58,6 +58,41 @@ export class Scratchpad {
     return [...this.steps];
   }
 
+  /**
+   * Get the most recent output/result for a given tool name.
+   */
+  getLastToolResult(toolName: string): string | undefined {
+    for (let i = this.steps.length - 1; i >= 0; i--) {
+      const s = this.steps[i];
+      if (s.type === 'tool_result' && s.tool === toolName) {
+        return s.output;
+      }
+      // Some flows use 'observation' steps with JSON stringified output
+      if (s.type === 'observation') {
+        try {
+          const parsed = JSON.parse(s.text);
+          if (parsed && parsed.tool === toolName && typeof parsed.output === 'string') {
+            return parsed.output;
+          }
+        } catch {}
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Get the last argument value used for a specific key in any tool call.
+   */
+  getLastArgValue(argKey: string): any {
+    for (let i = this.steps.length - 1; i >= 0; i--) {
+      const s = this.steps[i];
+      if (s.type === 'action' && s.mode === 'json' && s.args && argKey in s.args) {
+        return s.args[argKey];
+      }
+    }
+    return undefined;
+  }
+
   toMessages(systemPrompt: string): LLMMessage[] {
     const msgs: LLMMessage[] = [];
     if (systemPrompt) msgs.push({ role: 'system', content: systemPrompt });

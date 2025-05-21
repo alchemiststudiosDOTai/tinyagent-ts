@@ -2,15 +2,15 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 import { z } from 'zod';
-import { model, tool } from '../decorators';
-import { MultiStepAgent } from '../multiStepAgent';
-import { Scratchpad } from '../utils/scratchpad';
+import { model, tool } from '../src/decorators';
+import { MultiStepAgent } from '../src/multiStepAgent';
+import { Scratchpad } from '../src/utils/scratchpad';
 
 /**
  * Example of a ReAct agent that demonstrates the Thought → Action → Observation loop
  * using JSON tool calls.
  */
-@model('mistralai/mistral-small-3.1-24b-instruct:free')
+@model('openai/gpt-4.1')
 export class ReActAgent extends MultiStepAgent<string> {
   /**
    * Simple echo tool that returns the input text
