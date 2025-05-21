@@ -146,9 +146,9 @@ export abstract class Agent<I = string, O = string> {
         name: finalTool.name,
         description: finalTool.description,
         method: "forward",
-        schema: z.object({ answer: z.any() }),
+        schema: finalTool.schema,
       },
-      call: async (args: Record<string, unknown>) => finalTool.forward(args),
+      call: async (args: Record<string, unknown>) => finalTool.forward(args as any),
     };
 
     return registry;
@@ -232,6 +232,7 @@ export abstract class Agent<I = string, O = string> {
     const modelName = this.getModelName();
     const tools = this.buildToolRegistry();
     const toolCatalog = Object.values(tools)
+      .filter((t) => t.meta.name !== "final_answer")
       .map((t) => `- ${t.meta.name}: ${t.meta.description}`)
       .join("\n");
 
@@ -247,6 +248,7 @@ export abstract class Agent<I = string, O = string> {
 
     const finalTool = new FinalAnswerTool();
     const maxSteps = 5;
+    let usedTool = false;
 
     for (let step = 0; step < maxSteps; step++) {
       const responseBody = await this.makeOpenRouterRequest(this.memory, modelName);
@@ -278,6 +280,9 @@ export abstract class Agent<I = string, O = string> {
       const toolArgs = parsed.args;
 
       if (toolName === finalTool.name) {
+        if (!usedTool) {
+          console.warn("final_answer called before any other tool");
+        }
         const answer = await finalTool.forward(toolArgs);
         return answer as O;
       }
@@ -292,6 +297,7 @@ export abstract class Agent<I = string, O = string> {
       let toolResult;
       try {
         toolResult = await selectedTool.call(toolArgs);
+        usedTool = true;
       } catch (error) {
         if (error instanceof z.ZodError) {
           const { fixed, fixedParsed } = await this.retryWithFixRequest(

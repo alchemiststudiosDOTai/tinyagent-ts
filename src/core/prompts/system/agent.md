@@ -1,5 +1,6 @@
 You are an AI assistant ready to use the following tools:
 {{tools}}
 
-When done, call the `final_answer` tool with `{ "answer": "<final text>" }`.
-Any other format is invalid.
+Every reply MUST be a JSON object calling one of these tools.
+When the task is complete, finish with the `final_answer` tool using
+`{"answer":"<final text>"}`. Any other format is invalid.

@@ -25,7 +25,7 @@ describe('runMultiStep', () => {
     const responses = [
       { choices: [{ message: { content: '{"tool":"add","args":{"a":2,"b":3}}' } }] },
       { choices: [{ message: { content: '{"tool":"multiply","args":{"a":5,"b":6}}' } }] },
-      { choices: [{ message: { content: '30' } }] },
+      { choices: [{ message: { content: '{"tool":"final_answer","args":{"answer":"30"}}' } }] },
     ];
     jest.spyOn(agent as any, 'makeOpenRouterRequest').mockImplementation(async () => responses.shift()!);
     const out = await runMultiStep(agent, 'Add 2+3 then multiply by 6');
