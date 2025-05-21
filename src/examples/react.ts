@@ -11,7 +11,7 @@ import { Scratchpad } from '../utils/scratchpad';
  * using JSON tool calls.
  */
 @model('mistralai/mistral-small-3.1-24b-instruct:free')
-class ReActAgent extends MultiStepAgent<string, string> {
+export class ReActAgent extends MultiStepAgent<string, string> {
   /**
    * Simple echo tool that returns the input text
    */
@@ -69,10 +69,14 @@ async function runDemo() {
   console.log(`❓ Query: "${question}"`);
   
   try {
-    const answer = await agent.run(question, { 
+    const result = await agent.run(question, { 
       trace: true,
       onStep: displayReActSteps
     });
+    // With the new final_answer workflow, result will be an object with answer property
+    const answer = typeof result === 'object' && result && 'answer' in result
+      ? (result as { answer: string }).answer
+      : String(result);
     console.log(`✅ Final Answer: ${answer}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

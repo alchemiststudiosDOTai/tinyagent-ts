@@ -50,7 +50,11 @@ async function runMultiplierAgent(): Promise<void> {
     const question = "What is 12 multiplied by 5? Use your tool."; // Example question
     console.log(`\n➡️  Querying MultiplierAgent: "${question}"`);
     try {
-      const answer = await agent.run(question);
+      const result = await agent.run(question);
+      // With the new final_answer workflow, result will be an object with answer property
+      const answer = typeof result === 'object' && result && 'answer' in result
+        ? (result as { answer: string }).answer
+        : String(result);
       console.log(`\n✖️  Agent reply → ${answer}`);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);

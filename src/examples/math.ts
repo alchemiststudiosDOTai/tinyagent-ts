@@ -81,7 +81,11 @@ export async function runMathAgentDemo(): Promise<void> {
   for (const question of questions) {
     console.log(`❓ Question: "${question}"`);
     try {
-      const answer = await agent.run(question);
+      const result = await agent.run(question);
+      // With the new final_answer workflow, result will be an object with answer property
+      const answer = typeof result === 'object' && result && 'answer' in result
+        ? (result as { answer: string }).answer
+        : String(result);
       console.log(`✅ Answer: ${answer}\n`);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);

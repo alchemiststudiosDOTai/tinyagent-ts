@@ -79,7 +79,9 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
             if (!usedTool) {
               console.warn('final_answer called before any other tool');
             }
-            const finalAnswer = await finalTool.forward(action.args);
+            // Ensure args has the required 'answer' property for FinalAnswerInput
+            const finalAnswerArgs = { answer: action.args.answer as string };
+            const finalAnswer = await finalTool.forward(finalAnswerArgs);
             observation = typeof finalAnswer === 'object' ? JSON.stringify(finalAnswer) : String(finalAnswer);
             this.scratchpad.addObservation(observation);
             this.log(undefined, undefined, observation);
@@ -124,7 +126,9 @@ export class MultiStepAgent<I = string, O = string> extends Agent<I, O> {
             if (!usedTool) {
               console.warn('final_answer called before any other tool');
             }
-            const finalAnswer = await finalTool.forward(fixAction.args);
+            // Ensure args has the required 'answer' property for FinalAnswerInput
+            const finalAnswerArgs = { answer: fixAction.args.answer as string };
+            const finalAnswer = await finalTool.forward(finalAnswerArgs);
             const obs =
               typeof finalAnswer === 'object'
                 ? JSON.stringify(finalAnswer)

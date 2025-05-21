@@ -82,7 +82,11 @@ export async function runOneCallDemo(): Promise<void> {
   console.log(`❓ Query: "${query}"`);
   
   try {
-    const answer = await agent.run(query);
+    const result = await agent.run(query);
+    // With the new final_answer workflow, result will be an object with answer property
+    const answer = typeof result === 'object' && result && 'answer' in result
+      ? (result as { answer: string }).answer
+      : String(result);
     console.log(`✅ Answer: ${answer}\n`);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

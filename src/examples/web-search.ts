@@ -153,10 +153,18 @@ if (require.main === module) {
       console.log('💬 Query to agent:', query);
       console.log('🕐 Starting agent.run() at', new Date().toLocaleTimeString());
       
-      const answer = await agent.run(query);
+      const result = await agent.run(query);
       
       console.log('🕐 Finished agent.run() at', new Date().toLocaleTimeString());
-      console.log('💾 Response type:', typeof answer);
+      console.log('💾 Response type:', typeof result);
+      
+      // With the new final_answer workflow, result will be an object with answer property
+      let answer = '';
+      if (typeof result === 'object' && result && 'answer' in result) {
+        answer = (result as { answer: string }).answer;
+      } else {
+        answer = String(result);
+      }
       
       // Try to parse the response as JSON if it's a string
       let formattedAnswer = answer;
