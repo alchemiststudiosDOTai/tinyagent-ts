@@ -1,6 +1,8 @@
-# tinyAgent‑lite — Minimal TypeScript Agent Framework
+# tinyAgent-TS — Minimal TypeScript Agent Framework
 
-**tinyAgent‑lite** is a minimal TypeScript port of the original Python-based **tinyAgent** framework. It demonstrates how decorators, metadata, and a single LLM call can create a fully functional AI agent that discovers and executes local tools, all in a compact codebase.
+[![npm version](https://img.shields.io/npm/v/tinyagent-ts.svg)](https://www.npmjs.com/package/tinyagent-ts) [![License: BSL 1.1](https://img.shields.io/badge/License-BSL%201.1-blue.svg)](LICENSE)
+
+**tinyAgent-TS** is a minimal TypeScript framework for building custom AI agents. It demonstrates how decorators, metadata, and a single LLM call can create a fully functional AI agent that discovers and executes local tools, all in a compact codebase.
 
 ---
 
@@ -95,28 +97,87 @@ tinyagent-ts/
 ## Quick Start
 
 **Requirements:**  
-- Node.js (v18+ recommended)
+- Node.js (v16+ recommended)
 - npm
+- OpenRouter API key - [Get one here](https://openrouter.ai)
 
-**1. Clone the repository and install dependencies:**
+### Installation
+
+**1. Install the package from npm:**
 ```bash
-git clone <repository-url>
-cd tinyagent-ts
-npm install
+npm install tinyagent-ts
 ```
 
-**2. Set up your OpenRouter API key:**
+**2. Create a simple agent:**
+
+Create a file named `simple-agent.ts`:
+
+```typescript
+import { Agent, model, tool } from 'tinyagent-ts';
+import 'dotenv/config';
+
+// Define a custom agent with tools
+@model('openai/gpt-4')
+class SimpleAgent extends Agent {
+  // Add a simple calculator tool
+  @tool({
+    name: 'add',
+    description: 'Add two numbers together',
+    schema: {
+      type: 'object',
+      properties: {
+        a: { type: 'number', description: 'First number' },
+        b: { type: 'number', description: 'Second number' }
+      },
+      required: ['a', 'b']
+    }
+  })
+  async add(args: { a: number; b: number }) {
+    return { result: args.a + args.b };
+  }
+}
+
+// Use the agent
+async function main() {
+  // Make sure you have an OPENROUTER_API_KEY in your .env file
+  if (!process.env.OPENROUTER_API_KEY) {
+    console.error('OPENROUTER_API_KEY environment variable is required');
+    process.exit(1);
+  }
+
+  const agent = new SimpleAgent();
+  const question = 'What is 24 + 18?';
+  
+  try {
+    const answer = await agent.run(question);
+    console.log(`Question: ${question}`);
+    console.log(`Answer: ${answer}`);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+main();
+```
+
+**3. Set up your OpenRouter API key:**
 ```bash
 echo 'OPENROUTER_API_KEY="sk-or-..."' > .env
 ```
 
-**3. Run the CalcAgent demo:**
+**4. Run your agent:**
 ```bash
-npx ts-node src/index.ts
+npx ts-node simple-agent.ts
 ```
 
-**4. Try other examples:**
+### More Examples
+
+The package includes several example implementations in the GitHub repository:
+
 ```bash
+git clone https://github.com/alchemiststudiosDOTai/tinyagent-ts
+cd tinyagent-ts
+npm install
 npx ts-node examples/math-agent.ts
 npx ts-node examples/react.ts
 npx ts-node examples/todo-agent.ts
@@ -253,4 +314,10 @@ Registering an existing key throws an error unless you use `overwrite()`.
 
 ## License
 
-MIT — free to fork, hack, and grow.
+tinyAgent-TS is provided under the [Business Source License 1.1](LICENSE).
+
+- **Free** for individuals and businesses with annual revenue below $1 million USD.
+- **Paid license required** for businesses with annual revenue exceeding $1 million USD.
+- For commercial licensing inquiries, visit: [https://alchemiststudios.ai/](https://alchemiststudios.ai/)
+
+This license allows non-production use and ensures the project remains open while providing a sustainable business model for continued development.

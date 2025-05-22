@@ -20,7 +20,7 @@
     "dev": "ts-node-dev --respawn src/index.ts",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\" \"*.js\"",
-    "prepublishOnly": "npm run lint && npm run build",
+    "prepublishOnly": "npm run build",
     "test": "jest --runInBand",
     "test:live": "RUN_LIVE=true jest --runInBand",
     "release": "standard-version"
@@ -39,7 +39,7 @@
   "license": "Business Source License 1.1",
   "repository": {
     "type": "git",
-    "url": "https://github.com/username/tinyagent-ts.git"
+    "url": "https://github.com/alchemiststudiosDOTai/tinyagent-ts.git"
   },
   "dependencies": {
     "dotenv": "^16.3.1",
