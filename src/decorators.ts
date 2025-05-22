@@ -60,19 +60,47 @@ export interface ToolMetadata {
  * }
  * ```
  */
+/**
+ * Creates a tool decorator function that works with both legacy and standard decorators.
+ */
 export function tool(
   description: string,
   paramSchema: ZodSchema<any> = z.object({})
-): PropertyDecorator {
-  return (target: Object, propertyKey: string | symbol): void => {
-    const list: ToolMetadata[] =
-      Reflect.getMetadata(META_KEYS.TOOLS, target.constructor) || [];
-    list.push({
-      name: String(propertyKey),
-      description,
-      method: String(propertyKey),
-      schema: paramSchema,
-    });
-    Reflect.defineMetadata(META_KEYS.TOOLS, list, target.constructor);
+) {
+  // This function is designed to handle both legacy and standard decorator usage
+  return function decoratorFunction(targetOrClassMethod: any, contextOrPropertyKey?: any): any {
+    // Standard decorators (TypeScript 5+) pass a decorator context object as the second parameter
+    if (contextOrPropertyKey && typeof contextOrPropertyKey === 'object' && contextOrPropertyKey.kind === 'method') {
+      // This is the new decorators format - we need to return a replacement method
+      const { name } = contextOrPropertyKey;
+      const constructor = targetOrClassMethod.constructor;
+      
+      // Store metadata on the class
+      const list: ToolMetadata[] = Reflect.getMetadata(META_KEYS.TOOLS, constructor) || [];
+      list.push({
+        name: String(name),
+        description,
+        method: String(name),
+        schema: paramSchema,
+      });
+      Reflect.defineMetadata(META_KEYS.TOOLS, list, constructor);
+      
+      // Return the original method (no replacement)
+      return targetOrClassMethod;
+    } 
+    // Legacy decorators (TypeScript with experimentalDecorators flag)
+    else {
+      const target = targetOrClassMethod;
+      const propertyKey = contextOrPropertyKey;
+      
+      const list: ToolMetadata[] = Reflect.getMetadata(META_KEYS.TOOLS, target.constructor) || [];
+      list.push({
+        name: String(propertyKey),
+        description,
+        method: String(propertyKey),
+        schema: paramSchema,
+      });
+      Reflect.defineMetadata(META_KEYS.TOOLS, list, target.constructor);
+    }
   };
 }
