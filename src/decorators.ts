@@ -71,19 +71,46 @@ export function tool(
   return function decoratorFunction(targetOrClassMethod: any, contextOrPropertyKey?: any): any {
     // Standard decorators (TypeScript 5+) pass a decorator context object as the second parameter
     if (contextOrPropertyKey && typeof contextOrPropertyKey === 'object' && contextOrPropertyKey.kind === 'method') {
-      // This is the new decorators format - we need to return a replacement method
-      const { name } = contextOrPropertyKey;
-      const constructor = targetOrClassMethod.constructor;
+      // This is the new decorators format
+      const { name, addInitializer } = contextOrPropertyKey;
       
-      // Store metadata on the class
-      const list: ToolMetadata[] = Reflect.getMetadata(META_KEYS.TOOLS, constructor) || [];
-      list.push({
-        name: String(name),
-        description,
-        method: String(name),
-        schema: paramSchema,
-      });
-      Reflect.defineMetadata(META_KEYS.TOOLS, list, constructor);
+      // Add an initializer that will run when the class is instantiated
+      if (addInitializer) {
+        addInitializer(function(this: any) {
+          // 'this' refers to the class instance
+          const constructor = this.constructor;
+          
+          // Store metadata on the class constructor
+          const list: ToolMetadata[] = Reflect.getMetadata(META_KEYS.TOOLS, constructor) || [];
+          
+          // Check if this tool is already registered to avoid duplicates
+          if (!list.some(tool => tool.name === String(name))) {
+            list.push({
+              name: String(name),
+              description,
+              method: String(name),
+              schema: paramSchema,
+            });
+            Reflect.defineMetadata(META_KEYS.TOOLS, list, constructor);
+          }
+        });
+      }
+      
+      // Fallback for older TypeScript versions that don't support addInitializer
+      const target = targetOrClassMethod;
+      const constructor = target.constructor;
+      
+      // Also register directly on the constructor as a fallback
+      const directList: ToolMetadata[] = Reflect.getMetadata(META_KEYS.TOOLS, constructor) || [];
+      if (!directList.some(tool => tool.name === String(name))) {
+        directList.push({
+          name: String(name),
+          description,
+          method: String(name),
+          schema: paramSchema,
+        });
+        Reflect.defineMetadata(META_KEYS.TOOLS, directList, constructor);
+      }
       
       // Return the original method (no replacement)
       return targetOrClassMethod;
