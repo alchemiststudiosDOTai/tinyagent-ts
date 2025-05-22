@@ -119,11 +119,16 @@ import 'dotenv/config';
 
 // Define a custom agent with tools
 @model('google/gemini-2.5-flash-preview-05-20:thinking')
-class SimpleAgent extends Agent {
-  // Add a simple calculator tool
-  @tool('Add two numbers together', z.object({ a: z.number(), b: z.number() }))
-  async add(args: { a: number; b: number }) {
-    return { result: args.a + args.b };
+class MathAgent extends Agent {
+  // Add math operation tools
+  @tool('Add two numbers', z.object({ a: z.number(), b: z.number() }))
+  add({ a, b }: { a: number; b: number }) {
+    return `${a} + ${b} = ${a + b}`;
+  }
+
+  @tool('Subtract two numbers', z.object({ a: z.number(), b: z.number() }))
+  subtract({ a, b }: { a: number; b: number }) {
+    return `${a} - ${b} = ${a - b}`;
   }
 }
 
@@ -135,13 +140,13 @@ async function main() {
     process.exit(1);
   }
 
-  const agent = new SimpleAgent();
-  const question = 'What is 24 + 18?';
+  const agent = new MathAgent();
+  const question = 'What is 24 + 18? Also, what is 30 - 12?';
   
   try {
-    const answer = await agent.run(question);
+    const result = await agent.run(question);
     console.log(`Question: ${question}`);
-    console.log(`Answer: ${answer}`);
+    console.log(`Answer: ${result.answer}`);
   } catch (error) {
     console.error('Error:', error);
   }
