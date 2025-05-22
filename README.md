@@ -189,7 +189,13 @@ import 'dotenv/config';
 import { Agent, PythonExec, LLMMessage } from 'tinyagent-ts';
 import { model } from 'tinyagent-ts';
 
-@model('google/gemini-2.5-flash-preview-05-20:thinking')
+/**
+ * This example demonstrates the CodeAct paradigm:
+ * - The agent receives a task and emits Python code directly as its action, not a tool call.
+ * - The system executes the emitted code and returns the result.
+ * - All reasoning, control flow, and decision logic are handled in the code itself.
+ */
+@model('openai/gpt-4-turbo')  // You can use any model that's good at coding
 class PythonCodeActAgent extends Agent<string> {
   py = new PythonExec();
 
@@ -199,31 +205,62 @@ class PythonCodeActAgent extends Agent<string> {
    * No tool call is made; code is the action.
    */
   async actWithPythonCode(task: string): Promise<any> {
+    // Define messages for the LLM request
     const messages: LLMMessage[] = [
       { 
         role: 'system', 
-        content: `You are a Python programming expert. When given a task, respond with ONLY executable Python code.`
+        content: `You are a Python programming expert. When given a task, respond with ONLY executable Python code that solves the task.
+        No explanations, comments, or surrounding text. Begin your code with import statements if needed.
+        Your code should be complete, concise, and performant.`
       },
       { role: 'user', content: task }
     ];
 
-    // Get Python code from the LLM
+    // Make the request to get Python code from the LLM
     const modelName = this.getModelName();
     const response = await this.makeOpenRouterRequest(messages, modelName);
+    
+    // Extract the Python code from the response
     const pythonCode = response.choices[0]?.message?.content?.trim() ?? '';
+    console.log('Generated Python Code:');
+    console.log('----------------------------------------');
+    console.log(pythonCode);
+    console.log('----------------------------------------');
     
     // Execute the code and return the result
-    return await this.py.pythonExec({ code: pythonCode, timeoutMs: 5000 });
+    const result = await this.py.pythonExec({ code: pythonCode, timeoutMs: 5000 });
+    return result;
   }
 }
 
-// Use the CodeAct agent
 async function main() {
   const agent = new PythonCodeActAgent();
-  const task = 'Write Python code to score 3 laptops based on price, CPU and battery life';
+
+  // The agent is given a task and emits Python code as the action (not a tool call)
+  const task = `
+You are an expert laptop selection agent. Use Python code as your reasoning and action mechanism.
+Here are the laptop options (as a Python list of dicts):
+
+Laptop A: $1200, CPU benchmark 9500, 8-hour battery
+Laptop B: $1000, CPU benchmark 8700, 10-hour battery
+Laptop C: $900, CPU benchmark 8000, 7-hour battery
+
+Your job:
+- Use Python code to score each laptop for best value (higher CPU and battery are better, lower price is better).
+- Select the best laptop and explain your reasoning.
+- Output a JSON object with the selected laptop, all scores, and a reasoning string.
+`;
+
+  console.log('Submitting task to CodeAct agent...');
+  
+  // The agent emits Python code as the action, which is executed directly
   const result = await agent.actWithPythonCode(task);
-  console.log('Result:', result);
+
+  // Print the agent's output
+  console.log('Agent Output:', result);
 }
+
+main().catch(console.error);
 ```
 
 Run the CodeAct example:
