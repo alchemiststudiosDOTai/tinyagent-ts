@@ -317,6 +317,13 @@ Registering an existing key throws an error unless you use `overwrite()`.
 - **Rate‑limiting & caching** per tool (mirroring the Python original).
 - **Dynamic agent factory** to auto‑generate new tools at runtime.
 
+## Acknowledgments & Inspirations
+
+- **my wife**
+- [HuggingFace SmoLAgents](https://github.com/huggingface/smolagents)
+- And many other open-source contributors in the AI agent community! 
+
+
 ---
 
 ## License
