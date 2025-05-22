@@ -18,7 +18,7 @@ import { LLMMessage } from '../src/agent';
  * CodeAct enables more efficient, expressive, and compositional reasoning.
  */
 
-@model('openai/o3-mini')
+@model('google/gemini-2.5-flash-preview-05-20:thinking')
 class PythonCodeActAgent extends Agent<string> {
   py = new PythonExec();
 
@@ -43,9 +43,13 @@ class PythonCodeActAgent extends Agent<string> {
     const modelName = this.getModelName();
     const response = await this.makeOpenRouterRequest(messages, modelName);
     
-    // Extract the Python code from the response
-    const pythonCode = response.choices[0]?.message?.content?.trim() ?? '';
-    console.log('Generated Python Code:');
+    // Extract the Python code from the response and strip markdown formatting
+    let pythonCode = response.choices[0]?.message?.content?.trim() ?? '';
+    
+    // Remove markdown code block formatting if present
+    pythonCode = pythonCode.replace(/^```python\s*|^```\s*|```$/gm, '');
+    
+    console.log('Generated Python Code (after cleanup):');
     console.log('----------------------------------------');
     console.log(pythonCode);
     console.log('----------------------------------------');

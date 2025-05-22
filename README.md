@@ -195,7 +195,7 @@ import { model } from 'tinyagent-ts';
  * - The system executes the emitted code and returns the result.
  * - All reasoning, control flow, and decision logic are handled in the code itself.
  */
-@model('openai/gpt-4-turbo')  // You can use any model that's good at coding
+@model('google/gemini-2.5-flash-preview-05-20:thinking')  // You can use any model that's good at coding
 class PythonCodeActAgent extends Agent<string> {
   py = new PythonExec();
 
@@ -220,9 +220,13 @@ class PythonCodeActAgent extends Agent<string> {
     const modelName = this.getModelName();
     const response = await this.makeOpenRouterRequest(messages, modelName);
     
-    // Extract the Python code from the response
-    const pythonCode = response.choices[0]?.message?.content?.trim() ?? '';
-    console.log('Generated Python Code:');
+    // Extract the Python code from the response and strip markdown formatting
+    let pythonCode = response.choices[0]?.message?.content?.trim() ?? '';
+    
+    // Remove markdown code block formatting if present
+    pythonCode = pythonCode.replace(/^```python\s*|^```\s*|```$/gm, '');
+    
+    console.log('Generated Python Code (after cleanup):');
     console.log('----------------------------------------');
     console.log(pythonCode);
     console.log('----------------------------------------');
