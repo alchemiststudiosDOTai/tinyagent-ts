@@ -168,9 +168,63 @@ The package includes several example implementations in the GitHub repository:
 git clone https://github.com/alchemiststudiosDOTai/tinyagent-ts
 cd tinyagent-ts
 npm install
-npx ts-node examples/math-agent.ts
-npx ts-node examples/react.ts
-npx ts-node examples/todo-agent.ts
+npx ts-node examples/math-agent.ts    # Basic math operations
+npx ts-node examples/react.ts        # ReAct pattern with thinking steps
+npx ts-node examples/todo-agent.ts   # Simple stateful agent
+```
+
+#### 🔬 Beta Feature: CodeAct Pattern
+
+**CodeAct** is an experimental pattern where the agent uses code (Python in this case) as its reasoning and action mechanism instead of traditional tool calls.
+
+```typescript
+// Example: CodeAct Pattern - Python Code as Action (Beta Feature)
+import 'dotenv/config';
+
+import { Agent, PythonExec, LLMMessage } from 'tinyagent-ts';
+import { model } from 'tinyagent-ts';
+
+@model('google/gemini-2.5-flash-preview-05-20:thinking')
+class PythonCodeActAgent extends Agent<string> {
+  py = new PythonExec();
+
+  /**
+   * The agent's "action" is to emit Python code as a string.
+   * The system executes this code and returns the result.
+   * No tool call is made; code is the action.
+   */
+  async actWithPythonCode(task: string): Promise<any> {
+    const messages: LLMMessage[] = [
+      { 
+        role: 'system', 
+        content: `You are a Python programming expert. When given a task, respond with ONLY executable Python code.`
+      },
+      { role: 'user', content: task }
+    ];
+
+    // Get Python code from the LLM
+    const modelName = this.getModelName();
+    const response = await this.makeOpenRouterRequest(messages, modelName);
+    const pythonCode = response.choices[0]?.message?.content?.trim() ?? '';
+    
+    // Execute the code and return the result
+    return await this.py.pythonExec({ code: pythonCode, timeoutMs: 5000 });
+  }
+}
+
+// Use the CodeAct agent
+async function main() {
+  const agent = new PythonCodeActAgent();
+  const task = 'Write Python code to score 3 laptops based on price, CPU and battery life';
+  const result = await agent.actWithPythonCode(task);
+  console.log('Result:', result);
+}
+```
+
+Run the CodeAct example:
+
+```bash
+npx ts-node examples/codeact-python-agent.ts
 ```
 
 ### TypeScript Configuration
