@@ -1,145 +1,236 @@
 # tinyAgent‑lite — Minimal TypeScript Agent Framework
 
-**tinyAgent‑lite** is a stripped‑down TypeScript port that captures the essence of the original Python‑based **tinyAgent** framework in roughly 150 lines of code. It showcases how decorators, metadata, and a single LLM call can create a fully‑functional AI agent that discovers and executes local tools.
+**tinyAgent‑lite** is a minimal TypeScript port of the original Python-based **tinyAgent** framework. It demonstrates how decorators, metadata, and a single LLM call can create a fully functional AI agent that discovers and executes local tools, all in a compact codebase.
 
 ---
 
-## 1 . Project Structure
+## Table of Contents
 
-```text
-src/
-├── decorators.ts   # @model and @tool decorators + metadata registry
-├── agent.ts        # base Agent class • LLM orchestration • tool runtime
-├── index.ts        # demo CalcAgent with two math tools
-├── multiplierAgent.ts # demo MultiplierAgent with one math tool
-├── final-answer.tool.ts # always-run tool returning the agent's answer
-└── triageAgent.ts  # simple agent listing tools for manual selection
+1. [Project Structure](#project-structure)
+2. [Quick Start](#quick-start)
+3. [Examples](#examples)
+4. [ReAct Implementation](#react-implementation)
+5. [Concepts](#concepts)
+6. [Prompt Templates](#prompt-templates)
+7. [Design Highlights](#design-highlights)
+8. [Next Steps](#next-steps)
+9. [License](#license)
+
+---
+
+## Project Structure
+
+The project is organized for clarity and extensibility. Below is the current structure:
+
+```
+tinyagent-ts/
+├── src/
+│   ├── agent.ts              # Base Agent class: LLM orchestration, tool runtime
+│   ├── cli.ts                # CLI entry point
+│   ├── decorators.ts         # @model and @tool decorators + metadata registry
+│   ├── final-answer.tool.ts  # Tool for returning the agent's answer
+│   ├── index.ts              # Demo CalcAgent with math tools
+│   ├── multiStepAgent.ts     # Multi-step agent logic (ReAct loop)
+│   ├── promptEngine.ts       # Prompt template engine
+│   ├── runMultiStep.ts       # Entrypoint for multi-step agent runs
+│   ├── schemas.ts            # Zod schemas for tool validation
+│   ├── ta.ts                 # (Legacy/experimental agent)
+│   ├── triageAgent.ts        # Agent for manual tool selection
+│   ├── core/
+│   │   └── prompts/
+│   │       ├── final_answer_flow.md
+│   │       ├── retry_after_invalid_output.md
+│   │       └── system/
+│   │           ├── agent.md
+│   │           ├── example.md
+│   │           ├── react.md
+│   │           └── retry.md
+│   ├── types/
+│   │   └── .gitkeep
+│   └── utils/
+│       ├── json.ts
+│       ├── scratchpad.ts
+│       ├── steps.ts
+│       ├── truncate.ts
+│       └── validator.ts
+├── examples/
+│   ├── math-agent.ts
+│   ├── react-calculator.ts
+│   ├── react.ts
+│   ├── todo-agent.ts
+│   ├── web-search.ts
+│   └── wiki-summary.ts
+├── test/
+│   ├── agent.final-answer.test.ts
+│   ├── agent.integration.test.ts
+│   ├── finalAnswerTool.test.ts
+│   ├── json.utils.test.ts
+│   ├── promptEngine.test.ts
+│   ├── runMultiStep.test.ts
+│   ├── schemas.test.ts
+│   ├── scratchpad.test.ts
+│   └── fixtures/
+│       └── customAgent.md
+├── logistics/
+│   ├── plans/
+│   ├── notes/
+│   ├── project_workflow.md
+│   └── qa/
+├── types/
+│   └── globals.d.ts
+├── .env.example
+├── .gitignore
+├── .prettierrc.js
+├── eslint.config.js
+├── jest.config.js
+├── package.json
+├── package-lock.json
+├── tsconfig.json
+└── README.md
 ```
 
 ---
 
-## 2 . Quick Start
+## Quick Start
 
-First, please make sure you have Node.js and npm installed.
+**Requirements:**  
+- Node.js (v18+ recommended)
+- npm
 
+**1. Clone the repository and install dependencies:**
 ```bash
-# 1 . Clone the repository and install dependencies
 git clone <repository-url>
-cd tinyagent-ts && npm install
+cd tinyagent-ts
+npm install
+```
 
-# 2 . Provide your OpenRouter key
+**2. Set up your OpenRouter API key:**
+```bash
 echo 'OPENROUTER_API_KEY="sk-or-..."' > .env
+```
 
-# 3 . Run the CalcAgent demo
+**3. Run the CalcAgent demo:**
+```bash
 npx ts-node src/index.ts
 ```
 
-Example prompt/response:
+**4. Try other examples:**
+```bash
+npx ts-node examples/math-agent.ts
+npx ts-node examples/react.ts
+npx ts-node examples/todo-agent.ts
+```
 
+**Interaction Example:**
 ```text
 {"tool":"add","args":{"a":1,"b":2}}
 {"observation":"3"}
 {"tool":"final_answer","args":{"answer":"3"}}
 ```
+- Every tool call is followed by an `{ "observation": ... }` message.
+- Reply with another JSON action or finish with `final_answer`.
 
-Every tool call is followed by an `{ "observation": ... }` message from the agent.
-Reply with another JSON action or finish with `final_answer`.
-
-By default the agent makes a single tool call. Increase `maxSteps` in
-`MultiStepAgent` (or `runMultiStep`) if you expect longer chains.
-
-See the new `/examples` directory for walkthroughs of the strict `final_answer` flow.
-
-Every conversation **must** terminate with `{ "tool": "final_answer", "args": { "answer": "..." } }`. Plain text replies are rejected.
-
-### Final answer format
-
-Agents expect the very last message from the model to be a JSON object calling `final_answer`:
-
-```json
-{"tool": "final_answer", "args": {"answer": "your final text"}}
-```
-
-Trailing narration is ignored, so ensure the JSON appears on its own line if possible.
-
-The agent runs in a small loop: tool call → observation → new tool call, up to a few steps. If the model keeps choosing bad tools or invalid arguments twice in a row, the loop stops with an error message. The `multiplierAgent.ts` demo uses `dotenv` to load the key from the `.env` file, while `TriageAgent` simply lists your available tools.
+**Notes:**
+- By default, the agent makes a single tool call. Increase `maxSteps` in `MultiStepAgent` or `runMultiStep` for longer chains.
+- Every conversation **must** terminate with `{ "tool": "final_answer", "args": { "answer": "..." } }`. Plain text replies are rejected.
 
 ---
 
-## 3 . How It Works
+## Examples
 
-1. **Tool declaration**
+The `/examples` directory contains ready-to-run agent scripts demonstrating various features and patterns:
 
-   ```ts
-   @tool('Sum two numbers', z.object({ a: z.number(), b: z.number() }))
-   add({ a, b }) { return String(a + b); }
-   ```
+- [`math-agent.ts`](examples/math-agent.ts:1):  
+  Minimal agent with basic math tools (add, subtract, multiply, divide).
 
-   - `@tool` stores **name, description, Zod schema, and method** in metadata.
-   - Runtime validation ensures bad arguments are rejected early.
+- [`react-calculator.ts`](examples/react-calculator.ts:1):  
+  Calculator agent using the ReAct pattern for stepwise reasoning.
 
-2. **Agent execution flow**
+- [`react.ts`](examples/react.ts:1):  
+  Minimal ReAct agent showing the Thought→Action→Observation loop.
 
-   1. Build a _system prompt_ that lists every tool.
-   2. Send `[system, user]` messages to the chosen LLM (`@model`).
-   3. The LLM must respond with a JSON tool call **for every step**:
+- [`todo-agent.ts`](examples/todo-agent.ts:1):  
+  Agent that manages a simple in-memory todo list.
 
-      - Validates `args` using the stored Zod schema.
-      - Executes the bound class method.
-      - Sends `TOOL_RESULT` back to the model for a polished answer.
+- [`web-search.ts`](examples/web-search.ts:1):  
+  Agent with a web search tool, demonstrating tool integration.
 
-   4. The conversation ends **only** when the model calls the `final_answer` tool with the final text.
+- [`wiki-summary.ts`](examples/wiki-summary.ts:1):  
+  Agent that fetches and summarizes Wikipedia articles.
 
-```mermaid
-flowchart TB
-    Task[User Task]
-    Memory[agent.memory]
-    Generate[Generate from agent.model]
-    Execute[Execute Code action - Tool calls are written as functions]
-    Answer[Return the argument given to 'final_answer']
+Each example is self-contained and can be run with `npx ts-node examples/<file>.ts`.
 
-    Task -->|Add task to agent.memory| Memory
+---
 
-    subgraph ReAct[ReAct loop]
-        Memory -->|Memory as chat messages| Generate
-        Generate -->|Parse output to extract code action| Execute
-        Execute -->|No call to 'final_answer' tool => Store execution logs in memory and keep running| Memory
-    end
+## ReAct Implementation
 
-    Execute -->|Call to 'final_answer' tool| Answer
+tinyAgent‑ts implements the strict [ReAct](https://arxiv.org/abs/2210.03629) (Reasoning + Acting) loop, enforcing a Thought→Action→Observation cycle:
 
-    %% Styling
-    classDef default fill:#d4b702,stroke:#8b7701,color:#ffffff
-    classDef io fill:#4a5568,stroke:#2d3748,color:#ffffff
+1. **Prompt & Reasoning:**  
+   The agent uses a dedicated `react` prompt template, requiring the model to output explicit `Thought`, `Action`, and `Observation` fields at each step.
 
-    class Task,Answer io
-```
+2. **Typed Steps:**  
+   Interfaces like `ThoughtStep`, `ActionStep`, and `ObservationStep` keep the agent's memory structured and auditable.
 
-3. **Extensibility**
+3. **Scratchpad Memory:**  
+   The `Scratchpad` class renders the sequence of steps as chat messages, maintaining context for the LLM.
 
-   - **Add tools** → just decorate another method.
-   - **Change model** → swap the string in `@model('provider:model')`.
-   - **Replace LLM backend** → adjust the fetch endpoint & headers.
+4. **Execution Loop:**  
+   The `MultiStepAgent` cycles through the scratchpad, invoking tools and collecting observations, until a `final_answer` action is returned.
+
+5. **Debugging & Transparency:**  
+   Pass `--trace` (or `trace: true`) to log each Thought/Action/Observation triple for debugging.
+
+6. **Reflexion:**  
+   After each Observation, the agent can send a `Reflect:` message for self-critique and optional correction.
+
+7. **See Examples:**  
+   - [`examples/react.ts`](examples/react.ts:1): Minimal ReAct agent.
+   - [`examples/react-calculator.ts`](examples/react-calculator.ts:1): Calculator with ReAct reasoning.
+
+---
+
+## Concepts
+
+**Agent:**  
+A class that orchestrates LLM calls, tool selection, and execution.
+
+**Tool:**  
+A method decorated with `@tool`, exposing a function (with schema) that the agent can call.
+
+**@tool Decorator:**  
+Registers a method as a callable tool, including its name, description, and argument schema.
+
+**@model Decorator:**  
+Specifies which LLM backend/model to use for the agent.
+
+**Zod Schema:**  
+Used for runtime validation of tool arguments, ensuring type safety.
+
+**Scratchpad:**  
+A memory structure that records the sequence of Thought, Action, and Observation steps for the agent.
+
+**ReAct Pattern:**  
+A reasoning loop where the agent alternates between thinking (Thought), acting (Action), and observing (Observation), inspired by the ReAct paper.
+
+**PromptEngine:**  
+A utility for loading and managing prompt templates from markdown files.
+
+---
 
 ## Prompt Templates
 
-The framework ships with a tiny `PromptEngine` offering default templates like
-`greeting`. Markdown files under `src/core/prompts/system` are automatically
-loaded as templates (e.g. `agent.md`, `retry.md`). Pass an object to the
-constructor to override any built-in template or call `register()` to add new
-ones. You can also drop a new `.md` file in that directory and call
-`loadDir()` to make it available. Registering an existing key throws an error
-saying `already exists — use overwrite()`. To force replacement, use
-`overwrite()`. You can also point to a specific file when constructing a
-`PromptEngine` to override a built-in template:
+The framework includes a minimal `PromptEngine` for managing prompt templates. Markdown files under `src/core/prompts/system` are loaded automatically (e.g., `agent.md`, `retry.md`, `react.md`). You can override or add new templates by:
 
 ```ts
 const engine = new PromptEngine({}, { agent: '/path/to/my.md' });
 ```
 
+Registering an existing key throws an error unless you use `overwrite()`.
+
 ---
 
-## 4 . Design Highlights
+## Design Highlights
 
 | Decision                        | Rationale                                                   |
 | ------------------------------- | ----------------------------------------------------------- |
@@ -150,21 +241,7 @@ const engine = new PromptEngine({}, { agent: '/path/to/my.md' });
 
 ---
 
-## ReAct Implementation
-
-TinyAgent‑TS now mirrors the strict Thought→Action→Observation loop from [the ReAct paper](https://arxiv.org/abs/2210.03629). Key pieces:
-
-1. **Prompt & reasoning** – a single `react` prompt enforces explicit `Thought`, `Action`, and `Observation` fields.
-2. **Typed objects** – `ThoughtStep`, `ActionStep`, and `ObservationStep` interfaces keep memory structured.
-3. **Scratchpad / memory** – the `Scratchpad` class renders steps back into chat messages for the model.
-4. **Execution loop** – `MultiStepAgent` cycles through the scratchpad until a `final_answer` action is returned.
-5. **Debug & transparency** – pass `--trace` (or `trace: true`) to log each `T/A/O` triple as it happens.
-6. **Docs & example** – see `examples/react.ts` for a minimal JSON‑tool agent using these pieces. Additional samples live under `/examples`.
-7. **Reflexion** – after each Observation, the agent sends `Reflect:` for a self-critique and optional fix.
-
----
-
-## 5 . Next Steps
+## Next Steps
 
 - **Streaming** responses (`streamText`) for UI‑friendly progress.
 - **Retry / back‑off** wrapper for transient LLM errors.

@@ -57,7 +57,8 @@ export class StockResearchTools {
   )
   async topNewsUrl({ query }: { query: string }): Promise<string> {
     console.log('🔍 Searching for news about:', query);
-    const maxAttempts = 4;
+    // Limit DuckDuckGo search attempts to 1 to avoid being blocked. Increase if needed, but risk rate-limiting.
+    const maxAttempts = 1;
     let attempt = 0;
     let lastError: any = null;
     let delay = 1000;
