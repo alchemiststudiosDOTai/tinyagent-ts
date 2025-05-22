@@ -270,7 +270,7 @@ main().catch(console.error);
 Run the CodeAct example:
 
 ```bash
-npx ts-node examples/codeact-python-agent.ts
+npx tsx codeact-python-agent.ts
 ```
 
 ### TypeScript Configuration
