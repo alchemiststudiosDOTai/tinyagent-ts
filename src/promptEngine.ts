@@ -36,7 +36,29 @@ function loadTemplatesFromDir(dir: string): TemplateRegistry {
 }
 
 // Core system prompt directory (relative to this file)
-const systemPromptDir = path.join(__dirname, 'core', 'prompts', 'system');
+// Check multiple possible locations to support both development and npm package environments
+function findPromptsDir() {
+  const possiblePaths = [
+    // Source code structure
+    path.join(__dirname, 'core', 'prompts', 'system'),
+    // npm package structure when including src/core/prompts
+    path.join(__dirname, '..', 'src', 'core', 'prompts', 'system'),
+    // Fallback for other possible structures
+    path.join(process.cwd(), 'node_modules', 'tinyagent-ts', 'src', 'core', 'prompts', 'system')
+  ];
+  
+  for (const dir of possiblePaths) {
+    if (fs.existsSync(dir)) {
+      return dir;
+    }
+  }
+  
+  // Log an error but don't throw yet - we'll throw when a template is actually requested
+  console.error('Warning: Could not find prompt templates directory. Agent may not function correctly.');
+  return possiblePaths[0]; // Return the first path as a fallback
+}
+
+const systemPromptDir = findPromptsDir();
 
 // -----------------------------------------------------
 // Built‑in template registry (markdown + hardcoded)
