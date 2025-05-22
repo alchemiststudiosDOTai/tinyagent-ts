@@ -114,24 +114,14 @@ Create a file named `simple-agent.ts`:
 
 ```typescript
 import { Agent, model, tool } from 'tinyagent-ts';
+import { z } from 'zod';
 import 'dotenv/config';
 
 // Define a custom agent with tools
 @model('openai/gpt-4')
 class SimpleAgent extends Agent {
   // Add a simple calculator tool
-  @tool({
-    name: 'add',
-    description: 'Add two numbers together',
-    schema: {
-      type: 'object',
-      properties: {
-        a: { type: 'number', description: 'First number' },
-        b: { type: 'number', description: 'Second number' }
-      },
-      required: ['a', 'b']
-    }
-  })
+  @tool('Add two numbers together', z.object({ a: z.number(), b: z.number() }))
   async add(args: { a: number; b: number }) {
     return { result: args.a + args.b };
   }
