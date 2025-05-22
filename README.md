@@ -173,6 +173,23 @@ npx ts-node examples/react.ts
 npx ts-node examples/todo-agent.ts
 ```
 
+### TypeScript Configuration
+
+Simply extend the base config included in the package:
+
+```json
+// tsconfig.json
+{
+  "extends": "./node_modules/tinyagent-ts/tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist"
+    // Add your custom options here
+  },
+  "include": ["*.ts"]
+}
+```
+
+
 **Interaction Example:**
 ```text
 {"tool":"add","args":{"a":1,"b":2}}
