@@ -118,7 +118,7 @@ import { z } from 'zod';
 import 'dotenv/config';
 
 // Define a custom agent with tools
-@model('openai/gpt-4')
+@model('google/gemini-2.5-flash-preview-05-20:thinking')
 class SimpleAgent extends Agent {
   // Add a simple calculator tool
   @tool('Add two numbers together', z.object({ a: z.number(), b: z.number() }))
@@ -157,7 +157,7 @@ echo 'OPENROUTER_API_KEY="sk-or-..."' > .env
 
 **4. Run your agent:**
 ```bash
-npx ts-node simple-agent.ts
+npx tsx simple-agent.ts
 ```
 
 ### More Examples
