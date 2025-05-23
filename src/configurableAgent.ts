@@ -10,6 +10,7 @@ import chalk from 'chalk';
 export class ConfigurableAgent<I = string> extends MultiStepAgent<I> {
   private readonly externalTools: any[];
   private modelNameOverride?: string;
+  public testMode: boolean = false;
 
   constructor(options: MultiStepOptions = {}, externalTools: any[] = []) {
     super(options);
@@ -49,6 +50,11 @@ export class ConfigurableAgent<I = string> extends MultiStepAgent<I> {
 
   // Create a wrapper method for the CLI that returns a string (same as SimpleChatAgent)
   async runForCLI(input: string): Promise<string> {
+    // If in test mode, return mock responses
+    if (this.testMode) {
+      return this.getMockResponse(input);
+    }
+
     const result = await super.run(input as I, {
       trace: (this as any).trace,
       onStep: (this as any).trace
@@ -102,5 +108,24 @@ export class ConfigurableAgent<I = string> extends MultiStepAgent<I> {
     }
 
     return registry;
+  }
+
+  // Mock response generator for test mode (same as SimpleChatAgent)
+  private getMockResponse(input: string): string {
+    const lowerInput = input.toLowerCase();
+
+    if (lowerInput.includes('hello world') && lowerInput.includes('file')) {
+      return "The file 'hello_world.txt' has been created with the content 'Hello, World!'";
+    }
+
+    if (
+      lowerInput.includes('create') ||
+      lowerInput.includes('make') ||
+      lowerInput.includes('file')
+    ) {
+      return "I've successfully created the requested file for you.";
+    }
+
+    return 'This is a test response from the mock agent.';
   }
 }
