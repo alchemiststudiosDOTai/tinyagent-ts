@@ -304,6 +304,18 @@ Simply extend the base config included in the package:
 - Every conversation **must** terminate with `{ "tool": "final_answer", "args": { "answer": "..." } }`. Plain text replies are rejected.
 
 ---
+### CLI Usage
+
+```bash
+# basic chat (defaults shown)
+npx tinyagent --model openai/gpt-4o-mini --trace
+
+# custom system prompt
+npx tinyagent -p ./prompts/customer-support.md
+```
+
+*Run `tinyagent --help` for all options.*
+
 
 ## Examples
 
