@@ -25,6 +25,11 @@ class SimpleChatAgent extends MultiStepAgent<string> {
     }
     if (systemPrompt) {
       this.promptEngine.overwrite('agent', () => systemPrompt);
+    } else {
+      // Use CLI-specific ReAct prompt for better tool usage behavior in CLI context
+      this.promptEngine.overwrite('react', (data) => {
+        return this.promptEngine.render('cli-react', data);
+      });
     }
   }
 
@@ -32,7 +37,7 @@ class SimpleChatAgent extends MultiStepAgent<string> {
     return (this as any).modelName || super.getModelName();
   }
 
-  async runForCLI(input: string): Promise<string> {
+  async runForCLI(input: string, options?: { abortSignal?: AbortSignal }): Promise<string> {
     if (this.testMode) {
       return this.getMockResponse(input);
     }
@@ -49,19 +54,41 @@ class SimpleChatAgent extends MultiStepAgent<string> {
     }
 
     try {
-      const result = await this.run(input);
+      // Check for abort signal at the start
+      if (options?.abortSignal?.aborted) {
+        throw Object.assign(new Error('Operation cancelled'), { name: 'AbortError' });
+      }
+
+      const result = await this.run(input, { abortSignal: options?.abortSignal });
       const answer = result.answer;
 
       if (traceEnabled) {
         console.log = originalLog;
-        traceMessages.forEach((msg: string) => {
-          if (msg.includes('T:') || msg.includes('A:') || msg.includes('O:')) {
-            console.log(chalk.dim(msg));
-          }
-        });
+        // Enhanced trace output with better formatting
+        if (traceMessages.length > 0) {
+          console.log('\n' + CLIFormatter.formatTraceSection());
+          traceMessages.forEach((msg: string) => {
+            if (msg.includes('T:') || msg.includes('A:') || msg.includes('O:')) {
+              console.log(chalk.dim('  ' + msg));
+            }
+          });
+          console.log(CLIFormatter.formatTraceEnd());
+        }
       }
 
       return answer;
+    } catch (error) {
+      // Handle abort errors specifically
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw error; // Re-throw abort errors as-is
+      }
+      
+      // Enhance other errors with context
+      if (error instanceof Error) {
+        throw new Error(`Agent execution failed: ${error.message}`);
+      }
+      
+      throw error;
     } finally {
       console.log = originalLog;
     }

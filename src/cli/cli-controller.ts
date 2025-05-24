@@ -116,24 +116,40 @@ export class CLIController {
   }
 
   private async processAgentQuery(query: string): Promise<void> {
+    let thinkingInterval: NodeJS.Timeout | null = null;
+    
     try {
       this.stateManager.setRunning(true, 'agent-query');
       
-      // Show thinking indicator
-      const thinkingInterval = CLIFormatter.thinking();
+      // Show thinking indicator and store reference
+      thinkingInterval = CLIFormatter.thinking();
       
       try {
         const answer = await this.agentInteraction.runQuery(query);
-        CLIFormatter.stopThinking(thinkingInterval);
+        
+        // Ensure thinking indicator is stopped before showing response
+        if (thinkingInterval) {
+          CLIFormatter.stopThinking(thinkingInterval);
+          thinkingInterval = null;
+        }
+        
         CLIFormatter.botResponse(answer);
       } catch (error) {
-        CLIFormatter.stopThinking(thinkingInterval);
+        // Ensure thinking indicator is stopped even on error
+        if (thinkingInterval) {
+          CLIFormatter.stopThinking(thinkingInterval);
+          thinkingInterval = null;
+        }
         throw error;
       }
       
     } catch (error: any) {
       this.handleAgentError(error);
     } finally {
+      // Final cleanup - ensure thinking indicator is stopped
+      if (thinkingInterval) {
+        CLIFormatter.stopThinking(thinkingInterval);
+      }
       this.stateManager.setRunning(false);
     }
   }
@@ -146,6 +162,10 @@ export class CLIController {
       } else {
         CLIFormatter.info('Operation aborted by user (Ctrl+C)');
       }
+    } else if (error?.message?.includes('duck_search') || error?.message?.includes('tool failed')) {
+      // Enhanced error handling for tool failures
+      CLIFormatter.error(`Tool error: ${error.message}`);
+      CLIFormatter.info('💡 Tip: Some web services may be temporarily unavailable. Try a different query or use built-in commands.');
     } else {
       const message = error instanceof Error ? error.message : String(error);
       CLIFormatter.error(message);
@@ -186,8 +206,8 @@ export class CLIController {
     this.agentInteraction.abort('Operation cancelled by ESC key');
     this.stateManager.setRunning(false);
     
-    // Provide user feedback
-    CLIFormatter.info('Operation cancelled by user (ESC key)');
+    // Provide user feedback with improved messaging
+    CLIFormatter.operationCancelled('ESC key');
     
     // Clear any partial input and reset prompt
     this.ioManager.clearCurrentInput();

@@ -346,10 +346,16 @@ export abstract class Agent<I = string> {
           msg =
             `Tool ${toolName} failed: '${issue?.path.join('.')}' ${issue?.message}`.trim();
         } else {
-          msg = `Tool ${toolName} failed: ${error instanceof Error ? error.message : String(error)}`;
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          msg = `Tool ${toolName} failed: ${errorMessage}`;
+          
+          // Enhanced error context for common tool failures
+          if (toolName === 'duck_search' && errorMessage.includes('search failed')) {
+            msg += ' (The search service may be temporarily unavailable)';
+          }
         }
         if (badToolCalls >= MAX_BAD_CALLS) {
-          return { answer: `${msg} (too many bad tool calls)` };
+          return { answer: `${msg} After ${MAX_BAD_CALLS} failed attempts, I'll stop trying to avoid further issues. You may want to try a different approach or check that the required services are available.` };
         }
         this.logger.debug(`step ${step} → ${toolName} ERROR`, msg);
         this.memory.push({

@@ -66,6 +66,7 @@ tinyagent-ts/
 ├── test/
 │   ├── agent.final-answer.test.ts
 │   ├── agent.integration.test.ts
+│   ├── api_tool.integration.test.ts  # Integration tests for FileTool using the agent framework
 │   ├── finalAnswerTool.test.ts
 │   ├── json.utils.test.ts
 │   ├── promptEngine.test.ts
@@ -316,6 +317,53 @@ npx tinyagent -p ./prompts/customer-support.md
 
 *Run `tinyagent --help` for all options.*
 
+#### Interactive CLI Features
+
+The CLI provides a professional, hacker-style interface with built-in tools:
+
+**Available CLI Tools:**
+- `[file]`: Read, write, append or delete files on disk
+- `[grep]`: Search for patterns in files using grep
+- `[duck_search]`: Search the web via DuckDuckGo with safe search options
+- `[uuid]`: Generate random UUIDs
+
+**Example CLI Session:**
+```text
+>> Working Directory: /home/user/project
+>> Model: openai/gpt-4o-mini
+>> Status: ONLINE
+
+   Press ESC to cancel operations • Type "help" for more commands
+
+>> Available tools:
+   [file]: Read, write, append or delete a file on disk
+   [grep]: Search for a pattern in a file using grep
+   [duck_search]: Search the web via DuckDuckGo with safe search options
+   [uuid]: Generate a random UUID
+
+❯ gm
+[THINKING.]   T: The user is greeting me with "gm", which is a casual morning greeting. I should respond warmly and directly without using any tools. | A: final_answer
+                              
+[AGENT] Good morning! How can I assist you today?
+
+❯ can you make a text file that says hello world?
+[THINKING..]   T: The user wants to create a new text file containing the phrase "Hello World." I'll use the file tool with the action "write" to create this file with the specified content. | A: file
+O: "ok"
+[THINKING]   O: {"answer":"The file 'hello.txt' has been created successfully with the content 'Hello World'."}
+                              
+[AGENT] The file 'hello.txt' has been created successfully with the content 'Hello World'.
+
+❯ ls
+hello.txt  package.json  src/  README.md  ...
+```
+
+**Key CLI Features:**
+- **Conversational Intelligence**: Responds directly to greetings without unnecessary tool usage
+- **Professional UI**: Clean, terminal-style interface with status indicators
+- **Real-time Thinking**: Shows the agent's reasoning process with `[THINKING]` indicators
+- **Tool Integration**: Seamlessly integrates file operations, web search, and text processing
+- **Error Handling**: Graceful handling of tool failures with user-friendly messages
+- **Cancellation Support**: Press ESC to cancel any running operation
 
 ## Examples
 
@@ -437,6 +485,63 @@ Registering an existing key throws an error unless you use `overwrite()`.
 
 
 ---
+
+## Integration Testing
+
+The project includes integration tests that verify the proper functioning of the agent framework with various tools. The most comprehensive tests are in the `test/api_tool.integration.test.ts` file, which focuses on the FileTool integration.
+
+### FileTool Integration Tests
+
+The `test/api_tool.integration.test.ts` file contains detailed integration tests for the FileTool, demonstrating how the agent framework is used to perform file operations. These tests follow the ReAct pattern as established in the project's examples and documentation, using the agent's reasoning and acting loop for tool invocation.
+
+The tests include:
+
+1. Reading an existing file
+2. Writing to a new file
+3. Appending to an existing file
+4. Deleting a file
+5. Error handling for non-existent files
+
+The tests use natural language queries to trigger the agent's ReAct workflow, which includes:
+- Thought: The agent's reasoning about what action to take
+- Action: The tool invocation with appropriate arguments
+- Observation: The result of the tool execution
+
+For example, to test writing to a file, the test uses a query like:
+```typescript
+const result = await agent.run(`Write "New content" to ${testFilePath}`);
+```
+
+This approach ensures that the tests validate the complete agent workflow, not just individual tool calls.
+5. Handling errors (e.g., reading a non-existent file)
+
+Each test follows the same pattern:
+- Creates an instance of the TestAgent (which extends the Agent class)
+- Invokes the FileTool operation through the agent's `file` method
+- Verifies the result
+
+The tests include detailed console.log statements that trace the flow of execution, making it obvious that the agent framework is being used. When you run these tests, you'll see output like:
+
+```
+[Test] Created test file with content: Test content
+[Test] Created TestAgent instance
+[Test] About to invoke agent.file for read operation
+[Agent] Invoking FileTool with args: { action: 'read', path: '/tmp/tinyagent-filetool-tests/testfile.txt' }
+[Agent] FileTool operation completed with result: Test content
+[Test] Read operation result: Test content
+```
+
+This output clearly shows:
+1. The test setup and actions
+2. The agent invoking the FileTool with the specified arguments
+3. The FileTool operation completing and returning a result
+4. The test verifying the result
+
+To run these tests, use the following command:
+
+```bash
+npm test test/api_tool.integration.test.ts
+```
 
 ## License
 

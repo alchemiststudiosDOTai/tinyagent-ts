@@ -15,6 +15,13 @@ export class ConfigurableAgent<I = string> extends MultiStepAgent<I> {
   constructor(options: MultiStepOptions = {}, externalTools: any[] = []) {
     super(options);
     this.externalTools = externalTools;
+    
+    // If no custom system prompt provided, use CLI-specific ReAct prompt for better tool usage behavior
+    if (!options.systemPrompt && !options.systemPromptFile) {
+      this.promptEngine.overwrite('react', (data) => {
+        return this.promptEngine.render('cli-react', data);
+      });
+    }
   }
 
   protected getModelName(): string {

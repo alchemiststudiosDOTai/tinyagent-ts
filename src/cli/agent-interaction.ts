@@ -84,6 +84,14 @@ export class AgentInteraction {
       }
 
       return answer;
+    } catch (error) {
+      // Re-throw with better error context for tool failures
+      if (error instanceof Error && error.message.includes('Tool')) {
+        const enhancedError = new Error(`${error.message}`);
+        enhancedError.name = error.name;
+        throw enhancedError;
+      }
+      throw error;
     } finally {
       this.isRunning = false;
       this.currentAbortController = null;
@@ -92,7 +100,9 @@ export class AgentInteraction {
 
   abort(reason?: string): void {
     if (this.currentAbortController && this.isRunning) {
-      this.currentAbortController.abort(new Error(reason || 'Operation aborted'));
+      const abortError = new Error(reason || 'Operation aborted');
+      abortError.name = 'AbortError';
+      this.currentAbortController.abort(abortError);
       this.isRunning = false;
       this.currentAbortController = null;
     }
@@ -109,4 +119,4 @@ export class AgentInteraction {
   getAvailableTools(): any[] {
     return this.options.tools || [];
   }
-} 
+}
