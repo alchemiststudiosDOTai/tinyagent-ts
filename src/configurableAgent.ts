@@ -48,18 +48,18 @@ export class ConfigurableAgent<I = string> extends MultiStepAgent<I> {
     }
   }
 
-  // Create a wrapper method for the CLI that returns a string (same as SimpleChatAgent)
-  async runForCLI(input: string): Promise<string> {
+  /**
+   * CLI wrapper for agent run. Supports aborting via options.abortSignal.
+   */
+  async runForCLI(input: string, options?: { abortSignal?: AbortSignal }): Promise<string> {
     // If in test mode, return mock responses
     if (this.testMode) {
       return this.getMockResponse(input);
     }
-
     const result = await super.run(input as I, {
       trace: (this as any).trace,
-      onStep: (this as any).trace
-        ? this.displayReActSteps.bind(this)
-        : undefined,
+      onStep: (this as any).trace ? this.displayReActSteps.bind(this) : undefined,
+      abortSignal: options?.abortSignal,
     });
     return result.answer;
   }
@@ -90,7 +90,8 @@ export class ConfigurableAgent<I = string> extends MultiStepAgent<I> {
             method: 'forward',
             schema: tool.schema || null,
           },
-          call: async (args: Record<string, unknown>) => {
+          call: async (args: Record<string, unknown>, abortSignal?: AbortSignal) => {
+            void abortSignal;
             try {
               // Parse args with tool's schema if available
               const parsed = tool.schema ? tool.schema.parse(args) : args;

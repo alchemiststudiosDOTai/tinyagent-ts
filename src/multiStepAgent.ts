@@ -43,7 +43,7 @@ export class MultiStepAgent<I = string> extends Agent<I> {
 
   async run(
     task: I,
-    opts: Partial<MultiStepOptions> = {}
+    opts: Partial<MultiStepOptions & { abortSignal?: AbortSignal }> = {}
   ): Promise<FinalAnswerArgs> {
     if (opts.trace !== undefined) this.trace = opts.trace;
     if (opts.onStep) this.onStep = opts.onStep;
@@ -65,9 +65,13 @@ export class MultiStepAgent<I = string> extends Agent<I> {
     const finalTool = new FinalAnswerTool();
     let usedTool = false;
 
+    const abortSignal = opts.abortSignal;
+    if (abortSignal?.aborted) throw Object.assign(new Error('Aborted'), { name: 'AbortError' });
+
     for (let step = 0; step < this.maxSteps; step++) {
       const messages: LLMMessage[] = this.scratchpad.toMessages(systemPrompt);
-      const response = await this.makeOpenRouterRequest(messages, modelName);
+      if (abortSignal?.aborted) throw Object.assign(new Error('Aborted'), { name: 'AbortError' });
+      const response = await this.makeOpenRouterRequest(messages, modelName, abortSignal);
       const reply = response.choices[0]?.message?.content?.trim() ?? '';
 
       const { thought, action } = parseThoughtAction(reply);
@@ -80,7 +84,9 @@ export class MultiStepAgent<I = string> extends Agent<I> {
         if (action && action.mode === 'json') {
           if (action.tool === finalTool.name) {
             if (!usedTool) {
-              console.warn('final_answer called before any other tool');
+              console.log('[DEBUG] final_answer called before any other tool');
+console.log('[DEBUG] Current step/context:', { step, action });
+console.warn('final_answer called before any other tool');
             }
             const validated = finalTool.schema.parse(action.args ?? {});
             const finalAnswer = await finalTool.forward(validated);
@@ -115,7 +121,8 @@ export class MultiStepAgent<I = string> extends Agent<I> {
                 }
               }
             }
-            const result = await tool.call(toolArgs);
+            // Pass abortSignal to tool if supported
+            const result = await (tool.call.length >= 2 ? tool.call(toolArgs, abortSignal) : tool.call(toolArgs));
             usedTool = true;
             observation = JSON.stringify(result);
           }
@@ -136,10 +143,8 @@ export class MultiStepAgent<I = string> extends Agent<I> {
       const reflectMsgs: LLMMessage[] =
         this.scratchpad.toMessages(systemPrompt);
       reflectMsgs.push({ role: 'user', content: 'Reflect:' });
-      const reflectRes = await this.makeOpenRouterRequest(
-        reflectMsgs,
-        modelName
-      );
+      if (abortSignal?.aborted) throw Object.assign(new Error('Aborted'), { name: 'AbortError' });
+      const reflectRes = await this.makeOpenRouterRequest(reflectMsgs, modelName, abortSignal);
       const reflectReply =
         reflectRes.choices[0]?.message?.content?.trim() ?? '';
       const {
@@ -155,7 +160,9 @@ export class MultiStepAgent<I = string> extends Agent<I> {
         if (fixAction.mode === 'json') {
           if (fixAction.tool === finalTool.name) {
             if (!usedTool) {
-              console.warn('final_answer called before any other tool');
+              console.log('[DEBUG] final_answer called before any other tool');
+console.log('[DEBUG] Current step/context:', { step, action });
+console.warn('final_answer called before any other tool');
             }
             const validated = finalTool.schema.parse(fixAction.args ?? {});
             const finalAnswer = await finalTool.forward(validated);
@@ -174,7 +181,8 @@ export class MultiStepAgent<I = string> extends Agent<I> {
             if (!tool) {
               obs = `Unknown tool: ${fixAction.tool}`;
             } else {
-              const result = await tool.call(fixAction.args);
+              // Pass abortSignal to tool if supported
+              const result = await (tool.call.length >= 2 ? tool.call(fixAction.args, abortSignal) : tool.call(fixAction.args));
               usedTool = true;
               obs = JSON.stringify(result);
             }

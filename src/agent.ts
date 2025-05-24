@@ -21,7 +21,7 @@ interface ToolHandle {
    * @param args - The arguments to pass to the tool, expected to conform to `meta.schema`.
    * @returns A promise that resolves with the result of the tool execution.
    */
-  call: (args: Record<string, unknown>) => Promise<unknown>;
+  call: (args: Record<string, unknown>, abortSignal?: AbortSignal) => Promise<unknown>;
 }
 
 /**
@@ -146,7 +146,8 @@ export abstract class Agent<I = string> {
         method: 'forward',
         schema: finalTool.schema,
       },
-      call: async (args: Record<string, unknown>) => {
+      call: async (args: Record<string, unknown>, abortSignal?: AbortSignal) => {
+        void abortSignal;
         const parsed = finalTool.schema.parse(args);
         return finalTool.forward(parsed);
       },
@@ -159,13 +160,16 @@ export abstract class Agent<I = string> {
    * Makes a request to the OpenRouter API.
    * @param messages - An array of message objects to send to the LLM.
    * @param model - The name of the LLM model to use.
+   * @param abortSignal - An optional AbortSignal to cancel the request.
    * @returns A promise that resolves with the API response.
    * @throws Error if the API request fails or returns an error status.
+   * @throws AbortError if the request is aborted.
    * @internal
    */
   protected async makeOpenRouterRequest(
     messages: LLMMessage[],
-    model: string
+    model: string,
+    abortSignal?: AbortSignal
   ): Promise<OpenRouterResponse> {
     try {
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -177,6 +181,7 @@ export abstract class Agent<I = string> {
           'HTTP-Referer': 'https://github.com/yourusername/tinyagent-ts',
           'X-Title': 'TinyAgent-TS',
         },
+        signal: abortSignal,
         body: JSON.stringify({ model, messages }),
       });
 
@@ -223,19 +228,20 @@ export abstract class Agent<I = string> {
   }
 
   /**
-   * Main entry point for running the agent.
-   * It processes the input, interacts with the LLM, and potentially uses tools
-   * to generate a final output.
+   * Main entry point for running the agent. Supports aborting via abortSignal.
    * @param input - The input to be processed by the agent.
+   * @param opts - Options for the run method, including an optional abortSignal.
    * @returns A promise that resolves with the agent's final output.
    */
-  async run(input: I): Promise<FinalAnswerArgs> {
+  async run(input: I, opts?: { abortSignal?: AbortSignal }): Promise<FinalAnswerArgs> {
     const modelName = this.getModelName();
     const tools = this.buildToolRegistry();
     const toolCatalog = Object.values(tools)
       .filter((t) => t.meta.name !== 'final_answer')
       .map((t) => `- ${t.meta.name}: ${t.meta.description}`)
       .join('\n');
+    const abortSignal = opts?.abortSignal;
+    if (abortSignal?.aborted) throw Object.assign(new Error('Aborted'), { name: 'AbortError' });
 
     // Use new helper to build initial messages
     if (this.memory.length === 0) {

@@ -90,7 +90,7 @@ module.exports = [
   },
   // CLI build
   {
-    input: 'src/cli.ts',
+    input: 'src/cli-refactored.ts',
     output: {
       file: 'dist/cli.js',
       format: 'cjs',

@@ -20,6 +20,7 @@
   "scripts": {
     "build": "rollup -c && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "dev": "ts-node-dev --respawn src/index.ts",
+    "cli": "npx tsx src/cli-refactored.ts",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\" \"*.js\"",
     "prepublishOnly": "npm run build",
@@ -52,6 +53,7 @@
     "jsdom": "^26.1.0",
     "node-fetch": "^2.7.0",
     "reflect-metadata": "^0.2.1",
+    "tinyagent-ts": "^0.1.8",
     "yahoo-finance2": "^2.13.3",
     "zod": "^3.24.4"
   },
