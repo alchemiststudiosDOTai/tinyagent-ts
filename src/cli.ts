@@ -322,7 +322,7 @@ async function main() {
   const program = new Command()
     .name('tinyagent')
     .description('tinyAgent-TS interactive chat')
-    .version(pkg.version, '-v, --version', 'print CLI version')
+    .version(pkg.version, '-v, --version')
     .option(
       '-m, --model <id>',
       'LLM model id (OpenRouter style)',
@@ -345,7 +345,7 @@ async function main() {
       false
     )
     .allowExcessArguments(false)
-    .action(async (opts) => {
+    .action(async (opts: any) => {
       try {
         // Load tools based on options
         let tools: any[] = [];
