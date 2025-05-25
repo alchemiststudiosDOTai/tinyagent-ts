@@ -88,22 +88,4 @@ module.exports = [
       copyPromptTemplates(),
     ],
   },
-  // CLI build
-  {
-    input: 'src/cli-refactored.ts',
-    output: {
-      file: 'dist/cli.js',
-      format: 'cjs',
-      banner: '#!/usr/bin/env node',
-      sourcemap: true,
-    },
-    external,
-    plugins: [
-      resolve(),
-      commonjs(),
-      json(),
-      typescript({ tsconfig: './tsconfig.build.json' }),
-      copyPromptTemplates(),
-    ],
-  },
 ];
