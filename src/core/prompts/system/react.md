@@ -12,9 +12,9 @@ The Action MUST be valid JSON with exactly two fields: 'tool' (string) and 'args
 
 After each tool returns an observation, continue the cycle of Thought → Action → Observation until you're ready to provide a final answer.
 
-When you're ready to give the final answer, use the 'final_answer' tool:
+When you have the answer, CALL the final_answer tool:
 
 Thought: <your reasoning about the final answer>
 Action: {"tool":"final_answer","args":{"answer":"your final answer here"}}
 
-NEVER use code blocks. ALWAYS use the JSON format for actions.
+CRITICAL: You MUST end every task with the final_answer tool. NEVER use code blocks. ALWAYS use the JSON format for actions.

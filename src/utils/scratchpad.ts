@@ -7,7 +7,7 @@ import type {
   ScratchStep,
   ThoughtStep,
 } from './steps';
-import { LLMMessage } from '../agent';
+import { LLMMessage } from '../model/types';
 
 export class Scratchpad {
   private task: string = '';

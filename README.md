@@ -1,440 +1,508 @@
-# tinyAgent-TS — Minimal TypeScript Agent Framework
+# tinyAgent-TS — Modern TypeScript Agent Framework
 
 [![npm version](https://img.shields.io/npm/v/tinyagent-ts.svg)](https://www.npmjs.com/package/tinyagent-ts) [![License: BSL 1.1](https://img.shields.io/badge/License-BSL%201.1-blue.svg)](LICENSE)
 
-**tinyAgent-TS** is a minimal TypeScript framework for building custom AI agents. It demonstrates how decorators, metadata, and a single LLM call can create a fully functional AI agent that discovers and executes local tools, all in a compact codebase.
+**tinyAgent-TS** is a modern TypeScript framework for building AI agents with a clean, modular architecture. It provides a unified agent system with pluggable tools, multiple execution modes, and seamless LLM integration.
 
 ---
 
 ## Table of Contents
 
-1. [Project Structure](#project-structure)
-2. [Quick Start](#quick-start)
-3. [Examples](#examples)
-4. [ReAct Implementation](#react-implementation)
-5. [Concepts](#concepts)
-6. [Prompt Templates](#prompt-templates)
-7. [Design Highlights](#design-highlights)
-8. [Next Steps](#next-steps)
-9. [License](#license)
+1. [Key Features](#key-features)
+2. [Project Structure](#project-structure)
+3. [Quick Start](#quick-start)
+4. [Core Concepts](#core-concepts)
+5. [Execution Modes](#execution-modes)
+6. [Tool System](#tool-system)
+7. [Examples](#examples)
+8. [Python Integration](#python-integration--codeact-pattern)
+9. [API Reference](#api-reference)
+10. [Migration Guide](#migration-guide)
+11. [License](#license)
+
+---
+
+## Key Features
+
+- **Unified Agent Architecture**: Single configurable `Agent` class for all use cases
+- **Modular Design**: Clean separation between models, agents, tools, and execution
+- **Multiple Execution Modes**: Simple (direct LLM) and ReAct (reasoning + acting)
+- **Pluggable Tool System**: Easy to add custom tools with Zod schema validation
+- **Type-Safe**: Full TypeScript support with comprehensive type definitions
+- **Default Tools**: File operations, web search, Python execution, and more
+- **Flexible LLM Support**: Works with OpenRouter, OpenAI, Anthropic, and more
 
 ---
 
 ## Project Structure
 
-The project is organized for clarity and extensibility. Below is the current structure:
+The framework follows a clean modular architecture:
 
 ```
 tinyagent-ts/
 ├── src/
-│   ├── agent.ts              # Base Agent class: LLM orchestration, tool runtime
-│   ├── cli.ts                # CLI entry point
-│   ├── decorators.ts         # @model and @tool decorators + metadata registry
-│   ├── final-answer.tool.ts  # Tool for returning the agent's answer
-│   ├── default-tools/        # Suite of built-in tools
-│   ├── index.ts              # Demo CalcAgent with math tools
-│   ├── multiStepAgent.ts     # Multi-step agent logic (ReAct loop)
-│   ├── promptEngine.ts       # Prompt template engine
-│   ├── runMultiStep.ts       # Entrypoint for multi-step agent runs
-│   ├── schemas.ts            # Zod schemas for tool validation
-│   ├── ta.ts                 # (Legacy/experimental agent)
-│   ├── triageAgent.ts        # Agent for manual tool selection
-│   ├── core/
-│   │   └── prompts/
-│   │       ├── final_answer_flow.md
-│   │       ├── retry_after_invalid_output.md
-│   │       └── system/
-│   │           ├── agent.md
-│   │           ├── example.md
-│   │           ├── react.md
-│   │           └── retry.md
-│   ├── types/
-│   │   └── .gitkeep
-│   └── utils/
-│       ├── json.ts
-│       ├── scratchpad.ts
-│       ├── steps.ts
-│       ├── truncate.ts
-│       └── validator.ts
-├── examples/
-│   ├── math-agent.ts
-│   ├── react-calculator.ts
-│   ├── react.ts
-│   ├── todo-agent.ts
-│   ├── web-search.ts
-│   └── wiki-summary.ts
-├── test/
-│   ├── agent.final-answer.test.ts
-│   ├── agent.integration.test.ts
-│   ├── finalAnswerTool.test.ts
-│   ├── json.utils.test.ts
-│   ├── promptEngine.test.ts
-│   ├── runMultiStep.test.ts
-│   ├── schemas.test.ts
-│   ├── scratchpad.test.ts
-│   └── fixtures/
-│       └── customAgent.md
-├── logistics/
-│   ├── plans/
-│   ├── notes/
-│   ├── project_workflow.md
-│   └── qa/
-├── types/
-│   └── globals.d.ts
-├── .env.example
-├── .gitignore
-├── .prettierrc.js
-├── eslint.config.js
-├── jest.config.js
-├── package.json
-├── package-lock.json
-├── tsconfig.json
-└── README.md
+│   ├── model/                  # LLM communication layer
+│   │   ├── types.ts           # Model interfaces
+│   │   ├── model-manager.ts   # Unified LLM communication
+│   │   ├── openrouter-provider.ts # OpenRouter implementation
+│   │   └── index.ts           # Exports
+│   ├── agent/                 # Agent orchestration layer  
+│   │   ├── types.ts           # Agent interfaces
+│   │   ├── unified-agent.ts   # Single configurable agent
+│   │   └── index.ts           # Exports
+│   ├── tools/                 # Tool execution layer
+│   │   ├── types.ts           # Tool interfaces
+│   │   ├── registry.ts        # Tool management
+│   │   ├── default-tools.ts   # Default tool collection
+│   │   ├── file.ts            # File operations tool
+│   │   ├── grep.ts            # Search tool
+│   │   ├── duckSearch.ts      # Web search tool
+│   │   ├── pythonExec.ts      # Python execution tool
+│   │   ├── uuid.ts            # UUID generation tool
+│   │   ├── final_answer.ts    # Answer completion tool
+│   │   └── index.ts           # Exports
+│   ├── react/                 # ReAct reasoning layer
+│   │   ├── types.ts           # ReAct interfaces
+│   │   ├── engine.ts          # ReAct execution engine
+│   │   ├── parser.ts          # Response parsing
+│   │   ├── state.ts           # State management
+│   │   └── index.ts           # Exports
+│   ├── core/                  # Core utilities
+│   └── index.ts               # Main framework exports
+├── examples/                  # Usage examples
+├── test/                      # Test suite
+├── docs/                      # Documentation
+└── package.json
 ```
 
 ---
 
 ## Quick Start
 
-**Requirements:**  
+### Requirements
 - Node.js (v16+ recommended)
-- npm
+- npm or yarn
 - OpenRouter API key - [Get one here](https://openrouter.ai)
 
 ### Installation
 
-**1. Install the package from npm:**
 ```bash
 npm install tinyagent-ts
 ```
 
-**2. Create a simple agent:**
-
-Create a file named `simple-agent.ts`:
+### Basic Usage
 
 ```typescript
-import { Agent, model, tool } from 'tinyagent-ts';
-import { z } from 'zod';
-import 'dotenv/config';
+import { Agent, getDefaultTools } from 'tinyagent-ts';
 
-// Define a custom agent with tools
-@model('google/gemini-2.5-flash-preview-05-20:thinking')
-class MathAgent extends Agent {
-  // Add math operation tools
-  @tool('Add two numbers', z.object({ a: z.number(), b: z.number() }))
-  add({ a, b }: { a: number; b: number }) {
-    return `${a} + ${b} = ${a + b}`;
-  }
-
-  @tool('Subtract two numbers', z.object({ a: z.number(), b: z.number() }))
-  subtract({ a, b }: { a: number; b: number }) {
-    return `${a} - ${b} = ${a - b}`;
-  }
-}
-
-// Use the agent
-async function main() {
-  // Make sure you have an OPENROUTER_API_KEY in your .env file
-  if (!process.env.OPENROUTER_API_KEY) {
-    console.error('OPENROUTER_API_KEY environment variable is required');
-    process.exit(1);
-  }
-
-  const agent = new MathAgent();
-  const question = 'What is 24 + 18? Also, what is 30 - 12?';
-  
-  try {
-    const result = await agent.run(question);
-    console.log(`Question: ${question}`);
-    console.log(`Answer: ${result.answer}`);
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
-
-main();
-```
-
-**3. Set up your OpenRouter API key:**
-```bash
-echo 'OPENROUTER_API_KEY="sk-or-..."' > .env
-```
-
-**4. Run your agent:**
-```bash
-npx tsx simple-agent.ts
-```
-
-### More Examples
-
-The package includes several example implementations in the GitHub repository:
-
-```bash
-git clone https://github.com/alchemiststudiosDOTai/tinyagent-ts
-cd tinyagent-ts
-npm install
-npx ts-node examples/math-agent.ts    # Basic math operations
-npx ts-node examples/react.ts        # ReAct pattern with thinking steps
-npx ts-node examples/todo-agent.ts   # Simple stateful agent
-```
-
-#### 🔬 Beta Feature: CodeAct Pattern
-
-**CodeAct** is an experimental pattern where the agent uses code (Python in this case) as its reasoning and action mechanism instead of traditional tool calls.
-
-```typescript
-// Example: CodeAct Pattern - Python Code as Action (Beta Feature)
-import 'dotenv/config';
-
-import { Agent, PythonExec, LLMMessage } from 'tinyagent-ts';
-import { model } from 'tinyagent-ts';
-
-/**
- * This example demonstrates the CodeAct paradigm:
- * - The agent receives a task and emits Python code directly as its action, not a tool call.
- * - The system executes the emitted code and returns the result.
- * - All reasoning, control flow, and decision logic are handled in the code itself.
- */
-@model('google/gemini-2.5-flash-preview-05-20:thinking')  // You can use any model that's good at coding
-class PythonCodeActAgent extends Agent<string> {
-  py = new PythonExec();
-
-  /**
-   * The agent's "action" is to emit Python code as a string.
-   * The system executes this code and returns the result.
-   * No tool call is made; code is the action.
-   */
-  async actWithPythonCode(task: string): Promise<any> {
-    // Define messages for the LLM request
-    const messages: LLMMessage[] = [
-      { 
-        role: 'system', 
-        content: `You are a Python programming expert. When given a task, respond with ONLY executable Python code that solves the task.
-        No explanations, comments, or surrounding text. Begin your code with import statements if needed.
-        Your code should be complete, concise, and performant.`
-      },
-      { role: 'user', content: task }
-    ];
-
-    // Make the request to get Python code from the LLM
-    const modelName = this.getModelName();
-    const response = await this.makeOpenRouterRequest(messages, modelName);
-    
-    // Extract the Python code from the response and strip markdown formatting
-    let pythonCode = response.choices[0]?.message?.content?.trim() ?? '';
-    
-    // Remove markdown code block formatting if present
-    pythonCode = pythonCode.replace(/^```python\s*|^```\s*|```$/gm, '');
-    
-    console.log('Generated Python Code (after cleanup):');
-    console.log('----------------------------------------');
-    console.log(pythonCode);
-    console.log('----------------------------------------');
-    
-    // Execute the code and return the result
-    const result = await this.py.pythonExec({ code: pythonCode, timeoutMs: 5000 });
-    return result;
-  }
-}
-
-async function main() {
-  const agent = new PythonCodeActAgent();
-
-  // The agent is given a task and emits Python code as the action (not a tool call)
-  const task = `
-You are an expert laptop selection agent. Use Python code as your reasoning and action mechanism.
-Here are the laptop options (as a Python list of dicts):
-
-Laptop A: $1200, CPU benchmark 9500, 8-hour battery
-Laptop B: $1000, CPU benchmark 8700, 10-hour battery
-Laptop C: $900, CPU benchmark 8000, 7-hour battery
-
-Your job:
-- Use Python code to score each laptop for best value (higher CPU and battery are better, lower price is better).
-- Select the best laptop and explain your reasoning.
-- Output a JSON object with the selected laptop, all scores, and a reasoning string.
-`;
-
-  console.log('Submitting task to CodeAct agent...');
-  
-  // The agent emits Python code as the action, which is executed directly
-  const result = await agent.actWithPythonCode(task);
-
-  // Print the agent's output
-  console.log('Agent Output:', result);
-}
-
-main().catch(console.error);
-```
-
-Run the CodeAct example:
-
-```bash
-npx tsx codeact-python-agent.ts
-```
-
-### TypeScript Configuration
-
-Simply extend the base config included in the package:
-
-```json
-// tsconfig.json
-{
-  "extends": "./node_modules/tinyagent-ts/tsconfig.base.json",
-  "compilerOptions": {
-    "outDir": "./dist"
-    // Add your custom options here
+// Create an agent with simple mode (direct LLM responses)
+const agent = new Agent({
+  model: {
+    name: 'openai/gpt-4o-mini',
+    provider: 'openrouter',
+    apiKey: process.env.OPENROUTER_API_KEY
   },
-  "include": ["*.ts"]
-}
+  mode: 'simple'
+});
+
+// Simple chat
+const result = await agent.execute('What is the capital of France?');
+console.log(result.data.answer); // "The capital of France is Paris."
 ```
 
+### Using Tools with ReAct Mode
 
-**Interaction Example:**
-```text
-{"tool":"add","args":{"a":1,"b":2}}
-{"observation":"3"}
-{"tool":"final_answer","args":{"answer":"3"}}
+```typescript
+import { Agent, getDefaultTools } from 'tinyagent-ts';
+
+// Create an agent with ReAct mode for tool usage
+const agent = new Agent({
+  model: {
+    name: 'openai/gpt-4o-mini',
+    provider: 'openrouter',
+    apiKey: process.env.OPENROUTER_API_KEY
+  },
+  mode: 'react'  // Enable reasoning + acting
+});
+
+// Register default tools (file, grep, web search, Python, UUID)
+const tools = getDefaultTools();
+tools.forEach(tool => agent.registerTool(tool));
+
+// Agent can now use tools to solve complex tasks
+const result = await agent.execute('Search the web for the latest AI news and summarize it');
+console.log(result.data.answer);
 ```
-- Every tool call is followed by an `{ "observation": ... }` message.
-- Reply with another JSON action or finish with `final_answer`.
-
-**Notes:**
-- By default, the agent makes a single tool call. Increase `maxSteps` in `MultiStepAgent` or `runMultiStep` for longer chains.
-- Every conversation **must** terminate with `{ "tool": "final_answer", "args": { "answer": "..." } }`. Plain text replies are rejected.
 
 ---
-### CLI Usage
 
-```bash
-# basic chat (defaults shown)
-npx tinyagent --model openai/gpt-4o-mini --trace
+## Core Concepts
 
-# custom system prompt
-npx tinyagent -p ./prompts/customer-support.md
+### Unified Agent
+
+The framework provides a single `Agent` class that can be configured for different behaviors:
+
+```typescript
+const agent = new Agent({
+  model: {
+    name: 'your-model',
+    provider: 'openrouter',
+    apiKey: 'your-api-key'
+  },
+  mode: 'simple' | 'react',  // Execution mode
+  systemPrompt: 'Optional custom system prompt',
+  maxSteps: 10,              // Max reasoning steps for ReAct mode
+  trace: true                // Enable debug logging
+});
 ```
 
-*Run `tinyagent --help` for all options.*
+### Tool Interface
 
+Tools follow a standard interface with Zod schema validation:
+
+```typescript
+interface Tool {
+  name: string;
+  description: string;
+  schema: z.ZodSchema;
+  execute: (args: any, abortSignal?: AbortSignal) => Promise<any>;
+}
+```
+
+---
+
+## Execution Modes
+
+### Simple Mode
+Direct LLM responses without tool usage:
+```typescript
+const agent = new Agent({ mode: 'simple', ...config });
+const result = await agent.execute('Explain quantum computing');
+```
+
+### ReAct Mode
+Full reasoning and acting cycle with tool usage:
+```typescript
+const agent = new Agent({ mode: 'react', ...config });
+agent.registerTool(calculatorTool);
+const result = await agent.execute('What is 123 * 456?');
+// Agent will: Think → Use calculator tool → Observe result → Answer
+```
+
+---
+
+## Tool System
+
+### Default Tools
+
+The framework includes these tools out of the box:
+
+```typescript
+import { getDefaultTools } from 'tinyagent-ts';
+
+const tools = getDefaultTools();
+// Includes: file, grep, duck_search, pythonExec, uuid, final_answer
+```
+
+### Creating Custom Tools
+
+```typescript
+import { Tool } from 'tinyagent-ts';
+import { z } from 'zod';
+
+const weatherTool: Tool = {
+  name: 'weather',
+  description: 'Get current weather for a location',
+  schema: z.object({
+    location: z.string().describe('City name or coordinates')
+  }),
+  execute: async ({ location }) => {
+    // Implementation
+    const weather = await fetchWeather(location);
+    return `Weather in ${location}: ${weather.temp}°C, ${weather.condition}`;
+  }
+};
+
+agent.registerTool(weatherTool);
+```
+
+### Tool Categories
+
+Tools are organized by category for easy discovery:
+
+```typescript
+import { Agent, getDefaultTools } from 'tinyagent-ts';
+
+const agent = new Agent({ /* config */ });
+getDefaultTools().forEach(tool => agent.registerTool(tool));
+
+const registry = agent.getToolRegistry();
+const allTools = registry.getAll();
+console.log('Available tools:', allTools.map(t => t.name));
+// ['file', 'grep', 'duck_search', 'pythonExec', 'uuid', 'human_loop', 'final_answer']
+```
+
+---
 
 ## Examples
 
 The `/examples` directory contains ready-to-run agent scripts demonstrating various features and patterns:
 
-- [`math-agent.ts`](examples/math-agent.ts:1):  
-  Minimal agent with basic math tools (add, subtract, multiply, divide).
+- [`simple-agent.ts`](examples/simple-agent.ts):  
+  Basic agent usage with default tools and ReAct mode.
 
-- [`react-calculator.ts`](examples/react-calculator.ts:1):  
-  Calculator agent using the ReAct pattern for stepwise reasoning.
+- [`modes-example.ts`](examples/modes-example.ts):  
+  Demonstrates different execution modes (simple vs ReAct) and tool discovery.
 
-- [`react.ts`](examples/react.ts:1):  
-  Minimal ReAct agent showing the Thought→Action→Observation loop.
+- [`custom-tools-example.ts`](examples/custom-tools-example.ts):  
+  Shows how to create and register custom tools with the agent.
 
-- [`todo-agent.ts`](examples/todo-agent.ts:1):  
-  Agent that manages a simple in-memory todo list.
+- [`python-integration-example.ts`](examples/python-integration-example.ts):  
+  Python execution tool usage for computational tasks.
 
-- [`web-search.ts`](examples/web-search.ts:1):  
-  Agent with a web search tool, demonstrating tool integration.
+- [`custom-tool-react-test.ts`](examples/custom-tool-react-test.ts):  
+  Complete ReAct workflow demonstration with custom calculator tool, showing multi-step reasoning, tool usage, and final answer generation.
 
-- [`wiki-summary.ts`](examples/wiki-summary.ts:1):  
-  Agent that fetches and summarizes Wikipedia articles.
+Each example is self-contained and can be run with `npx tsx examples/<file>.ts`.
 
-Each example is self-contained and can be run with `npx ts-node examples/<file>.ts`.
+### ReAct Flow Demonstration
 
----
+Experience the complete ReAct (Reasoning + Acting) workflow in action:
 
-## ReAct Implementation
-
-tinyAgent‑ts implements the strict [ReAct](https://arxiv.org/abs/2210.03629) (Reasoning + Acting) loop, enforcing a Thought→Action→Observation cycle:
-
-1. **Prompt & Reasoning:**  
-   The agent uses a dedicated `react` prompt template, requiring the model to output explicit `Thought`, `Action`, and `Observation` fields at each step.
-
-2. **Typed Steps:**  
-   Interfaces like `ThoughtStep`, `ActionStep`, and `ObservationStep` keep the agent's memory structured and auditable.
-
-3. **Scratchpad Memory:**  
-   The `Scratchpad` class renders the sequence of steps as chat messages, maintaining context for the LLM.
-
-4. **Execution Loop:**  
-   The `MultiStepAgent` cycles through the scratchpad, invoking tools and collecting observations, until a `final_answer` action is returned.
-
-5. **Debugging & Transparency:**  
-   Pass `--trace` (or `trace: true`) to log each Thought/Action/Observation triple for debugging.
-
-6. **Reflexion:**  
-   After each Observation, the agent can send a `Reflect:` message for self-critique and optional correction.
-
-7. **See Examples:**  
-   - [`examples/react.ts`](examples/react.ts:1): Minimal ReAct agent.
-   - [`examples/react-calculator.ts`](examples/react-calculator.ts:1): Calculator with ReAct reasoning.
-
----
-
-## Concepts
-
-**Agent:**  
-A class that orchestrates LLM calls, tool selection, and execution.
-
-**Tool:**  
-A method decorated with `@tool`, exposing a function (with schema) that the agent can call.
-
-**@tool Decorator:**  
-Registers a method as a callable tool, including its name, description, and argument schema.
-
-**@model Decorator:**  
-Specifies which LLM backend/model to use for the agent.
-
-**Zod Schema:**  
-Used for runtime validation of tool arguments, ensuring type safety.
-
-**Scratchpad:**  
-A memory structure that records the sequence of Thought, Action, and Observation steps for the agent.
-
-**ReAct Pattern:**  
-A reasoning loop where the agent alternates between thinking (Thought), acting (Action), and observing (Observation), inspired by the ReAct paper.
-
-**PromptEngine:**  
-A utility for loading and managing prompt templates from markdown files.
-
----
-
-## Prompt Templates
-
-The framework includes a minimal `PromptEngine` for managing prompt templates. Markdown files under `src/core/prompts/system` are loaded automatically (e.g., `agent.md`, `retry.md`, `react.md`). You can override or add new templates by:
-
-```ts
-const engine = new PromptEngine({}, { agent: '/path/to/my.md' });
+```bash
+npx tsx examples/react-demo.ts
 ```
 
-Registering an existing key throws an error unless you use `overwrite()`.
+**Live output showcasing the Think → Act → Observe cycle:**
+```
+=== ReAct Workflow Demonstration ===
+
+Available tools: final_answer, file, grep, uuid, human_loop, duck_search, pythonExec
+
+Thought: I will start by generating a UUID as the first step. This will provide a unique identifier for the process.
+Action: uuid({})
+Observation: "40b4a2f1-b78e-4640-ae25-ee1fb5ad4371"
+
+Thought: Next, I will calculate the expression 25 * 4 + 17 using Python to obtain the result. This will involve running a simple arithmetic calculation.
+Action: pythonExec({"code":"result = 25 * 4 + 17; print(f'Calculation: 25 * 4 + 17 = {result}'); result"})
+Observation: "Calculation: 25 * 4 + 17 = 117\n117"
+
+Thought: Now I need to search for information about "TypeScript agents" to provide comprehensive information on this topic.
+Action: duck_search({"query":"TypeScript agents AI frameworks"})
+Observation: "TypeScript AI agents are becoming increasingly popular for building intelligent applications. Modern frameworks like LangChain, AutoGPT, and tinyAgent-TS provide robust tooling for creating autonomous agents that can reason, plan, and execute actions..."
+
+Thought: I have successfully completed all three required tasks. Now I will provide the final answer containing all the results.
+Action: final_answer({"answer":"Here are the results:\n1. UUID: 40b4a2f1-b78e-4640-ae25-ee1fb5ad4371\n2. Calculation: 25 * 4 + 17 = 117\n3. TypeScript Agents Info: TypeScript AI agents are powerful tools for building intelligent applications with frameworks providing autonomous reasoning and action capabilities."})
+
+=== FINAL RESULT ===
+Success: true
+Data: {
+  "answer": "Here are the results:\n1. UUID: 40b4a2f1-b78e-4640-ae25-ee1fb5ad4371\n2. Calculation: 25 * 4 + 17 = 117\n3. TypeScript Agents Info: TypeScript AI agents are powerful tools for building intelligent applications with frameworks providing autonomous reasoning and action capabilities."
+}
+Steps: 8
+```
+
+**This demonstrates the ReAct pattern's power:**
+1. **🤔 Think**: Agent reasons about each step and plans the approach
+2. **⚡ Act**: Executes tools (UUID generation, Python calculations, web search) 
+3. **👁️ Observe**: Processes tool results and adapts next actions
+4. **🎯 Deliver**: Synthesizes all results into a comprehensive final answer
+
+The ReAct framework enables sophisticated multi-step problem solving by seamlessly combining LLM reasoning with tool execution capabilities.
+
+### Python Integration & CodeAct Pattern
+
+The framework includes robust Python integration through the `pythonExecTool`, enabling agents to execute Python code for complex computations, data analysis, and scientific computing tasks.
+
+#### Basic Python Tool Usage
+
+```typescript
+import { Agent } from 'tinyagent-ts';
+import { pythonExecTool } from 'tinyagent-ts';
+
+const agent = new Agent({
+  mode: 'react',
+  model: {
+    name: 'openai/gpt-4o-mini',
+    provider: 'openrouter',
+    apiKey: process.env.OPENROUTER_API_KEY,
+  },
+});
+
+// Register the Python execution tool
+agent.registerTool(pythonExecTool);
+
+// Ask the agent to solve complex problems using Python
+const result = await agent.execute('Calculate the fibonacci sequence up to 100 and find the largest prime number in it');
+```
+
+#### CodeAct Pattern (Advanced)
+
+**CodeAct** is a powerful pattern where agents generate Python code as their primary action mechanism, enabling sophisticated reasoning through code execution:
+
+```typescript
+import { Agent } from 'tinyagent-ts';
+import { pythonExecTool } from 'tinyagent-ts';
+
+async function codeActExample() {
+  const agent = new Agent({
+    model: {
+      name: 'google/gemini-2.5-flash-preview-05-20:thinking',
+      provider: 'openrouter', 
+      apiKey: process.env.OPENROUTER_API_KEY,
+    },
+    mode: 'simple',
+  });
+
+  agent.registerTool(pythonExecTool);
+
+  // Task: Complex data analysis with JSON output
+  const task = `
+  Analyze laptop options and select the best value:
+  - Laptop A: $1200, CPU benchmark 9500, 8-hour battery
+  - Laptop B: $1000, CPU benchmark 8700, 10-hour battery  
+  - Laptop C: $900, CPU benchmark 8000, 7-hour battery
+  
+  Use Python to score each laptop and return JSON with your selection and reasoning.
+  `;
+
+  const result = await agent.execute(task);
+  console.log('Analysis Result:', result.data.answer);
+}
+```
+
+#### Python Tool Features
+
+- **Safe Execution**: Sandboxed Python environment with timeout controls
+- **Rich Libraries**: Access to standard Python libraries (json, math, datetime, etc.)
+- **Data Processing**: Perfect for calculations, transformations, and analysis
+- **Structured Output**: Generate JSON, CSV, or any formatted data
+- **Error Handling**: Graceful error reporting and debugging
+
+#### Example Use Cases
+
+```typescript
+// Mathematical computations
+await agent.execute('Use Python to solve: What is the compound interest on $1000 at 5% for 10 years?');
+
+// Data analysis
+await agent.execute('Process this sales data and calculate monthly growth rates: [100, 120, 115, 140, 160]');
+
+// Scientific computing  
+await agent.execute('Calculate the trajectory of a projectile launched at 45 degrees with initial velocity 20 m/s');
+
+// JSON data manipulation
+await agent.execute('Convert this CSV data to JSON and add calculated totals: name,sales\\nAlice,100\\nBob,150');
+```
+
+Run the Python integration example:
+
+```bash
+npx tsx examples/python-integration-example.ts
+```
 
 ---
 
-## Design Highlights
+## API Reference
 
-| Decision                        | Rationale                                                   |
-| ------------------------------- | ----------------------------------------------------------- |
-| Decorators + `reflect‑metadata` | Zero boilerplate for users; rich runtime metadata.          |
-| Zod schemas on tools            | Strong arg validation and IDE‑friendly typings.             |
-| Two‑turn tool loop              | Lets the model _act → observe → refine_ like ReAct pattern. |
-| Single file per concern         | Keeps cognitive load minimal; ideal teaching skeleton.      |
+### Main Exports
+
+```typescript
+// Core agent class
+import { Agent } from 'tinyagent-ts';
+
+// Tool utilities
+import { 
+  Tool,
+  getDefaultTools,
+  StandardToolRegistry as ToolRegistry,
+  pythonExecTool
+} from 'tinyagent-ts';
+
+// Individual tools (if needed)
+import {
+  FileTool,
+  GrepTool,
+  UuidTool,
+  HumanLoopTool,
+  DuckDuckGoSearchTool
+} from 'tinyagent-ts';
+
+// Types
+import { 
+  AgentConfig,
+  AgentMode,
+  ModelConfig,
+  AgentResult
+} from 'tinyagent-ts';
+```
+
+### Agent Methods
+
+```typescript
+class Agent {
+  constructor(config: AgentConfig);
+  
+  // Tool management
+  registerTool(tool: Tool): void;
+  getToolRegistry(): StandardToolRegistry;
+  
+  // Execution
+  execute(input: string, options?: AgentExecutionOptions): Promise<AgentResult>;
+  
+  // Configuration
+  getConfig(): AgentConfig;
+  getModelManager(): ModelManager;
+}
+```
 
 ---
 
-## Next Steps
+## Migration Guide
 
-- **Streaming** responses (`streamText`) for UI‑friendly progress.
-- **Retry / back‑off** wrapper for transient LLM errors.
-- **Rate‑limiting & caching** per tool (mirroring the Python original).
-- **Dynamic agent factory** to auto‑generate new tools at runtime.
+If you're upgrading from an older version using decorators:
 
-## Acknowledgments & Inspirations
+### Old Pattern (Deprecated)
+```typescript
+@model('openai/gpt-4')
+class MyAgent extends Agent {
+  @tool('Add numbers', schema)
+  add(args) { ... }
+}
+```
 
-- **my wife**
-- [HuggingFace SmoLAgents](https://github.com/huggingface/smolagents)
-- And many other open-source contributors in the AI agent community! 
+### New Pattern (Current)
+```typescript
+const agent = new Agent({
+  model: { name: 'openai/gpt-4', provider: 'openrouter' },
+  mode: 'react'
+});
 
+const addTool: Tool = {
+  name: 'add',
+  description: 'Add numbers',
+  schema: z.object({ a: z.number(), b: z.number() }),
+  execute: async ({ a, b }) => a + b
+};
+
+agent.registerTool(addTool);
+```
+
+---
+
+## Testing
+
+The framework includes comprehensive tests:
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test suites
+npm test test/simple-agent.test.ts  # Simple mode tests
+npm test test/react-agent.test.ts   # ReAct mode tests
+npm test test/pythonExec.test.ts    # Python integration tests
+```
 
 ---
 
