@@ -1,6 +1,6 @@
 {
   "name": "tinyagent-ts",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Modern TypeScript framework for building AI agents with pluggable tools and ReAct reasoning",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
