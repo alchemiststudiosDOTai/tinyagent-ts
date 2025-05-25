@@ -1,3 +1,5 @@
+import { UnifiedAgent } from '../agent/unified-agent';
+
 export interface AgentOptions {
   model: string;
   systemPrompt?: string;
@@ -11,46 +13,32 @@ export interface AgentRunOptions {
 }
 
 export class AgentInteraction {
-  private agent: any;
+  private agent!: UnifiedAgent;
   private currentAbortController: AbortController | null = null;
   private isRunning = false;
+  private options: AgentOptions;
 
-  constructor(
-    private AgentClass: any,
-    private ConfigurableAgentClass: any,
-    private options: AgentOptions
-  ) {
+  constructor(options: AgentOptions) {
+    this.options = options;
     this.initializeAgent();
   }
 
   private initializeAgent(): void {
     const { model, systemPrompt, testMode, trace, tools = [] } = this.options;
 
-    if (tools.length > 0) {
-      // Use ConfigurableAgent with tools
-      const agentOptions = systemPrompt ? { systemPrompt } : {};
-      this.agent = new this.ConfigurableAgentClass(agentOptions, tools);
-      
-      if (model !== 'openai/gpt-4o-mini') {
-        this.agent.setModelName(model);
-      }
-      
-      if (testMode) {
-        (this.agent as any).testMode = true;
-      }
-    } else {
-      // Use SimpleChatAgent for backward compatibility
-      this.agent = new this.AgentClass(model, systemPrompt, testMode);
-    }
+    // Create agentModel as object if model is string
+    const agentModel = typeof model === 'string' ? { name: model } : model;
 
-    // Enable tracing if requested
-    if (trace) {
-      if (this.agent.setTrace) {
-        this.agent.setTrace(true);
-      } else {
-        (this.agent as any).trace = true;
-      }
-    }
+    // Instantiate UnifiedAgent directly with options
+    const agentConfig = {
+      model: agentModel,
+      systemPrompt,
+      testMode,
+      trace,
+      tools,
+    };
+
+    this.agent = new UnifiedAgent(agentConfig);
   }
 
   async runQuery(input: string, options: AgentRunOptions = {}): Promise<string> {
@@ -71,17 +59,11 @@ export class AgentInteraction {
     try {
       let answer: string;
 
-      if (this.agent.runForCLI) {
-        answer = await this.agent.runForCLI(input, { 
-          abortSignal: this.currentAbortController.signal 
-        });
-      } else {
-        // Fallback
-        const result = await this.agent.run(input, { 
-          abortSignal: this.currentAbortController.signal 
-        });
-        answer = result.answer;
-      }
+      // Use execute method of UnifiedAgent
+      const result = await this.agent.execute(input, {
+        abortSignal: this.currentAbortController.signal,
+      });
+      answer = result.data;
 
       return answer;
     } catch (error) {
@@ -112,7 +94,7 @@ export class AgentInteraction {
     return this.isRunning;
   }
 
-  getAgent(): any {
+  getAgent(): UnifiedAgent {
     return this.agent;
   }
 

@@ -89,7 +89,7 @@ export class CLIFormatter {
     console.log(chalk.blue('  clear, cls') + chalk.gray(' ────── Clear the screen'));
     console.log('');
     console.log(chalk.cyan.bold('CLI OPTIONS:'));
-    console.log(chalk.blue('  -m, --model <id>') + chalk.gray('     ────── LLM model (default: openai/gpt-4o-mini)'));
+    console.log(chalk.blue('  -m, --model <id>') + chalk.gray('     ────── LLM model name (default: openai/gpt-4o-mini)'));
     console.log(chalk.blue('  -p, --prompt <file>') + chalk.gray('   ────── System prompt file'));
     console.log(chalk.blue('  -t, --trace') + chalk.gray('          ────── Show detailed reasoning steps'));
     console.log(chalk.blue('  --tools') + chalk.gray('             ────── Load all default tools'));

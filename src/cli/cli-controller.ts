@@ -3,6 +3,9 @@ import { SignalHandler } from './signal-handler';
 import { AgentInteraction, AgentOptions } from './agent-interaction';
 import { StateManager } from './state-manager';
 import { CLIFormatter } from './formatter';
+import { UnifiedAgent } from '../agent/unified-agent';
+import { defaultTools } from '../tools/default-tools';
+import { StandardToolRegistry } from '../tools/registry';
 
 export interface CLIOptions extends AgentOptions {
   enableRawMode?: boolean;
@@ -16,21 +19,33 @@ export class CLIController {
   private isInitialized = false;
   private isShuttingDown = false;
 
-  constructor(
-    AgentClass: any,
-    ConfigurableAgentClass: any,
-    private options: CLIOptions
-  ) {
+  constructor(private options: CLIOptions) {
     this.stateManager = new StateManager();
     this.ioManager = new IOManager({ enableRawMode: options.enableRawMode });
+
+    // Create tool registry from defaultTools
+    const toolRegistry = StandardToolRegistry.fromTools(defaultTools);
+
+    // Override tools in options with tools from registry
+    // Map CLI flags to UnifiedAgent config
+    const mappedOptions = {
+      ...options,
+      tracing: options.trace === true,
+    };
+
+    const optionsWithTools = {
+      ...mappedOptions,
+      tools: toolRegistry.getAll(),
+      model: typeof options.model === 'string' ? options.model : (options.model as any).name,
+    };
+
     this.agentInteraction = new AgentInteraction(
-      AgentClass, 
-      ConfigurableAgentClass, 
-      options
+      optionsWithTools
     );
     this.signalHandler = new SignalHandler({
       onEscapeKey: () => this.handleEscapeKey(),
       onSigInt: () => this.handleSigInt(),
+      onSigTerm: () => this.handleSigTerm(),
     });
   }
 
@@ -41,7 +56,7 @@ export class CLIController {
       // Setup I/O and signal handling
       this.ioManager.setupKeypressEvents();
       this.signalHandler.activate();
-      
+
       const keypressHandler = this.signalHandler.createKeypressHandler();
       this.ioManager.addKeypressListener(keypressHandler);
 
@@ -78,16 +93,16 @@ export class CLIController {
     while (!this.isShuttingDown) {
       try {
         const line = await this.ioManager.readLine();
-        
+
         if (this.isShuttingDown) break;
-        
+
         await this.handleInput(line);
       } catch (error) {
         if (this.isShuttingDown) break;
-        
+
         const message = error instanceof Error ? error.message : String(error);
         CLIFormatter.error(`Input error: ${message}`);
-        
+
         // Continue the loop unless it's a critical error
         if (error instanceof Error && error.name === 'CRITICAL') {
           break;
@@ -98,7 +113,7 @@ export class CLIController {
 
   private async handleInput(line: string): Promise<void> {
     const cleaned = line.trim();
-    
+
     // Skip empty input
     if (!cleaned) {
       return;
@@ -117,22 +132,22 @@ export class CLIController {
 
   private async processAgentQuery(query: string): Promise<void> {
     let thinkingInterval: NodeJS.Timeout | null = null;
-    
+
     try {
       this.stateManager.setRunning(true, 'agent-query');
-      
+
       // Show thinking indicator and store reference
       thinkingInterval = CLIFormatter.thinking();
-      
+
       try {
         const answer = await this.agentInteraction.runQuery(query);
-        
+
         // Ensure thinking indicator is stopped before showing response
         if (thinkingInterval) {
           CLIFormatter.stopThinking(thinkingInterval);
           thinkingInterval = null;
         }
-        
+
         CLIFormatter.botResponse(answer);
       } catch (error) {
         // Ensure thinking indicator is stopped even on error
@@ -142,7 +157,7 @@ export class CLIController {
         }
         throw error;
       }
-      
+
     } catch (error: any) {
       this.handleAgentError(error);
     } finally {
@@ -174,24 +189,24 @@ export class CLIController {
 
   private handleBuiltInCommand(input: string): boolean {
     const command = input.toLowerCase();
-    
+
     switch (command) {
       case 'exit':
       case 'quit':
         this.gracefulExit();
         return true;
-      
+
       case 'help':
         CLIFormatter.help();
         return true;
-      
+
       case 'clear':
       case 'cls':
         CLIFormatter.clear();
         this.showWelcome();
         this.showHelpHint();
         return true;
-      
+
       default:
         return false;
     }
@@ -205,10 +220,10 @@ export class CLIController {
     // Cancel the running operation
     this.agentInteraction.abort('Operation cancelled by ESC key');
     this.stateManager.setRunning(false);
-    
+
     // Provide user feedback with improved messaging
     CLIFormatter.operationCancelled('ESC key');
-    
+
     // Clear any partial input and reset prompt
     this.ioManager.clearCurrentInput();
     console.log(''); // Clean line break
@@ -228,19 +243,31 @@ export class CLIController {
 
   private gracefulExit(): void {
     if (this.isShuttingDown) return;
-    
+
     this.isShuttingDown = true;
     CLIFormatter.goodbye();
-    
+
     // Allow time for cleanup
     setTimeout(() => {
       process.exit(0);
     }, 100);
   }
 
+  private handleSigTerm(): void {
+    if (this.stateManager.isCurrentlyRunning()) {
+      // Cancel current operation
+      this.agentInteraction.abort('Operation aborted by SIGTERM');
+      this.stateManager.setRunning(false);
+      CLIFormatter.info('Operation aborted by system signal (SIGTERM)');
+    } else {
+      // Exit the CLI
+      this.gracefulExit();
+    }
+  }
+
   private showWelcome(): void {
     CLIFormatter.welcome(this.options.model);
-    
+
     const tools = this.agentInteraction.getAvailableTools();
     if (tools.length > 0) {
       console.log(CLIFormatter.formatAvailableTools(tools));
@@ -261,4 +288,4 @@ export class CLIController {
       // Silent cleanup - don't show errors during shutdown
     }
   }
-} 
+}

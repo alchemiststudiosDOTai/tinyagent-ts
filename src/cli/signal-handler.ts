@@ -2,6 +2,7 @@ export interface SignalHandlerCallbacks {
   onEscapeKey?: () => void;
   onCtrlC?: () => void;
   onSigInt?: () => void;
+  onSigTerm?: () => void;
 }
 
 export class SignalHandler {
@@ -15,8 +16,9 @@ export class SignalHandler {
   activate(): void {
     if (this.isActive) return;
 
-    // Handle Ctrl+C (SIGINT)
+    // Handle Ctrl+C (SIGINT) and SIGTERM
     process.on('SIGINT', this.handleSigInt);
+    process.on('SIGTERM', this.handleSigTerm);
     this.isActive = true;
   }
 
@@ -24,6 +26,7 @@ export class SignalHandler {
     if (!this.isActive) return;
 
     process.removeListener('SIGINT', this.handleSigInt);
+    process.removeListener('SIGTERM', this.handleSigTerm);
     this.isActive = false;
   }
 
@@ -44,5 +47,10 @@ export class SignalHandler {
   private handleSigInt = (): void => {
     console.log(''); // New line for clean output
     this.callbacks.onSigInt?.();
+  };
+
+  private handleSigTerm = (): void => {
+    console.log(''); // New line for clean output
+    this.callbacks.onSigTerm?.();
   };
 } 
