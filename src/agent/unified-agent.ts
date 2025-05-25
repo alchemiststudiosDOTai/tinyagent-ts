@@ -2,7 +2,7 @@ import { ModelManager } from '../model';
 import { ReActEngine } from '../react';
 import { StandardToolRegistry, FinalAnswerTool, Tool } from '../tools';
 import { PromptEngine } from '../promptEngine';
-import { Agent, AgentConfig, AgentExecutionOptions, AgentResult, AgentMode } from './types';
+import { Agent, AgentConfig, AgentExecutionOptions, AgentResult } from './types';
 
 /**
  * Unified agent implementation supporting multiple execution modes
@@ -12,7 +12,13 @@ export class UnifiedAgent implements Agent {
   private toolRegistry: StandardToolRegistry;
   private reactEngine: ReActEngine;
   private promptEngine: PromptEngine;
-  private config: Required<AgentConfig>;
+  private config: AgentConfig & {
+    mode: NonNullable<AgentConfig['mode']>;
+    model: NonNullable<AgentConfig['model']>;
+    react: NonNullable<AgentConfig['react']>;
+    debug: NonNullable<AgentConfig['debug']>;
+    logger: NonNullable<AgentConfig['logger']>;
+  };
 
   constructor(config: AgentConfig = {}) {
     // Set default configuration
@@ -90,10 +96,6 @@ export class UnifiedAgent implements Agent {
           steps = reactResult.steps;
           break;
         
-        case 'triage':
-          result = await this.executeTriage(input, options);
-          break;
-        
         default:
           throw new Error(`Unknown agent mode: ${mode}`);
       }
@@ -127,7 +129,7 @@ export class UnifiedAgent implements Agent {
   ): Promise<any> {
     const systemPrompt = options.systemPrompt || 
       this.config.systemPrompt || 
-      this.promptEngine.render('agent', {});
+      this.promptEngine.render('simple', {});
 
     const messages = [
       { role: 'system' as const, content: systemPrompt },
@@ -168,18 +170,6 @@ export class UnifiedAgent implements Agent {
     );
   }
 
-  private async executeTriage(
-    input: string,
-    options: AgentExecutionOptions
-  ): Promise<any> {
-    const toolsList = this.toolRegistry.getAll()
-      .map(tool => `- ${tool.name}: ${tool.description}`)
-      .join('\n');
-
-    return {
-      answer: `Here are the available tools, choose the best one for the task:\n${toolsList}`,
-    };
-  }
 
   getConfig(): AgentConfig {
     return { ...this.config };

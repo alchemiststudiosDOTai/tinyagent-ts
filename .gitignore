@@ -194,4 +194,7 @@ config.local.toml
 # Debug files
 debug.log
 debug/
-debugging/ 
+debugging/
+
+# CodeAct deep dive doc (temporary exclusion)
+new-docs/codeact-agent-deep-dive.md 

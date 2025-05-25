@@ -92,7 +92,6 @@ export class StandardToolRegistry implements ToolRegistry {
     }
     return registry;
   }
-  }
 
   /**
    * Get tools catalog as string for LLM prompts

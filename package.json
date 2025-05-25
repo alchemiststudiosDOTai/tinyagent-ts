@@ -1,13 +1,10 @@
 {
   "name": "tinyagent-ts",
   "version": "0.1.8",
-  "description": "Minimal TypeScript Agent Framework for building custom AI agents",
+  "description": "Modern TypeScript framework for building AI agents with pluggable tools and ReAct reasoning",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": {
-    "tinyagent": "./dist/cli.js"
-  },
   "files": [
     "dist",
     "src/core/prompts",
@@ -19,8 +16,7 @@
   "sideEffects": false,
   "scripts": {
     "build": "rollup -c && tsc -p tsconfig.build.json --emitDeclarationOnly",
-    "dev": "ts-node-dev --respawn src/index.ts",
-    "cli": "npx tsx src/cli-refactored.ts",
+    "dev": "tsx new-docs/simple-agent.ts",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\" \"*.js\"",
     "prepublishOnly": "npm run build",
@@ -45,8 +41,6 @@
     "url": "https://github.com/alchemiststudiosDOTai/tinyagent-ts.git"
   },
   "dependencies": {
-    "chalk": "^4.1.2",
-    "commander": "^14.0.0",
     "dotenv": "^16.3.1",
     "duck-duck-scrape": "^2.2.7",
     "execa": "^5.1.1",
@@ -64,8 +58,6 @@
     "@rollup/plugin-terser": "^0.4.3",
     "@rollup/plugin-typescript": "^11.1.3",
     "@types/body-parser": "^1.19.5",
-    "@types/chalk": "^0.4.31",
-    "@types/commander": "^2.12.0",
     "@types/express": "^5.0.2",
     "@types/jest": "^29.5.0",
     "@types/jsdom": "^21.1.7",
@@ -84,6 +76,7 @@
     "ts-jest": "^29.1.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
+    "tsx": "^4.19.4",
     "typescript": "^5.3.3"
   }
 }

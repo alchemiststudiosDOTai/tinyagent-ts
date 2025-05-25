@@ -3,9 +3,19 @@ import { ReActEngine, ReActConfig } from '../react';
 import { ToolRegistry } from '../tools';
 
 /**
+ * Error thrown when agent generation fails
+ */
+export class AgentGenerationError extends Error {
+  constructor(message: string, public readonly details?: Record<string, any>) {
+    super(message);
+    this.name = 'AgentGenerationError';
+  }
+}
+
+/**
  * Agent execution mode
  */
-export type AgentMode = 'simple' | 'react' | 'triage';
+export type AgentMode = 'simple' | 'react';
 
 /**
  * Agent configuration

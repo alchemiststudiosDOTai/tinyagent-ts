@@ -1,32 +1,26 @@
-// Core exports for building agents
-export { Agent } from './agent';
-export type { LLMMessage } from './agent';
-export { model, tool } from './decorators';
-export type { ToolMetadata } from './decorators';
-export {
-  FinalAnswerTool,
-  FinalAnswerArgs,
-  FinalAnswerOutput,
-} from './final-answer.tool';
+// New modular architecture exports
+export { ModelManager, OpenRouterProvider } from './model';
+export { LLMMessage, ModelConfig, ModelResponse, ModelProvider, ModelError } from './model/types';
+export { UnifiedAgent } from './agent/unified-agent';
+export { AgentConfig, AgentExecutionOptions, AgentResult, AgentMode, AgentGenerationError } from './agent/types';
+export { StandardToolRegistry, Tool, BaseTool, FinalAnswerTool } from './tools';
+export { ReActEngine, ReActStateManager, parseReActResponse, validateFinalAnswer, FinalAnswerSchema } from './react';
+export { ReActConfig, ReActResult, ReActTool, ActionStep, ReActStep } from './react/types';
 
-// Export all tools individually in addition to the namespace
-export * as DefaultTools from './default-tools';
-export { 
-  DuckDuckGoSearchTool,
-  FileTool,
-  GrepTool,
-  HumanLoopTool,
-  UuidTool
-} from './default-tools';
+// Main agent export (unified agent as the primary Agent)
+export { UnifiedAgent as Agent } from './agent/unified-agent';
 
-// ReAct pattern implementation
-export { MultiStepAgent } from './multiStepAgent';
-export { runMultiStep } from './runMultiStep';
+// Tool exports for convenience
+export { defaultTools, getDefaultTools } from './tools/default-tools';
+export * as DefaultTools from './tools/default-tools';
+
+// Convenience type aliases
+export { StandardToolRegistry as ToolRegistry } from './tools';
+
+// Utility exports (keeping existing utilities)
+export * from './schemas';
+export * from './utils/steps';
 export { Scratchpad } from './utils/scratchpad';
 
 // Specialized tools
-export { PythonExec } from './tools/pythonExec';
-
-// Utility exports
-export * from './schemas';
-export * from './utils/steps';
+export { pythonExecTool } from './tools/pythonExec';

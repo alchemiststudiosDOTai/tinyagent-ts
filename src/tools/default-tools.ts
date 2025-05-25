@@ -5,6 +5,7 @@ import { GrepTool } from './grep-tool';
 import { UuidTool } from './uuid-tool';
 import { HumanLoopTool } from './human-loop-tool';
 import { DuckDuckGoSearchTool } from './duckduckgo-search-tool';
+import { pythonExecTool } from './pythonExec';
 
 /**
  * Default tool instances
@@ -16,13 +17,21 @@ export const defaultTools = {
   uuid: new UuidTool(),
   humanLoop: new HumanLoopTool(),
   duckSearch: new DuckDuckGoSearchTool(),
+  python: pythonExecTool,
 } as const;
 
 /**
  * Get all default tools as an array
  */
-export function getDefaultTools(): Tool[] {
-  return Object.values(defaultTools);
+export interface GetDefaultToolsOptions {
+  includeFinalAnswer?: boolean;
+}
+
+export function getDefaultTools(options?: GetDefaultToolsOptions): Tool[] {
+  const opts = options ?? {};
+  const tools = Object.values(defaultTools);
+  if (opts.includeFinalAnswer) return tools;
+  return tools.filter(t => t.name !== 'final_answer');
 }
 
 /**
@@ -34,6 +43,7 @@ export const defaultToolCategories = {
   search: [defaultTools.duckSearch],
   interaction: [defaultTools.humanLoop],
   completion: [defaultTools.finalAnswer],
+  execution: [defaultTools.python],
 } as const;
 
 /**
