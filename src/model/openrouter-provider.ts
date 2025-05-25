@@ -64,7 +64,7 @@ export class OpenRouterProvider implements ModelProvider {
         );
       }
 
-      const data: OpenRouterResponse = await response.json();
+      const data = await response.json() as OpenRouterResponse;
       const content = data.choices[0]?.message?.content?.trim() ?? '';
 
       return {

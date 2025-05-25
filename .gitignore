@@ -197,4 +197,9 @@ debug/
 debugging/
 
 # CodeAct deep dive doc (temporary exclusion)
-new-docs/codeact-agent-deep-dive.md 
+new-docs/codeact-agent-deep-dive.md
+
+# Test package script and directories
+test-package.sh
+PACKAGE_TEST_GUIDE.md
+test-tinyagent-* 
