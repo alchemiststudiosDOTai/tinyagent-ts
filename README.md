@@ -93,11 +93,13 @@ tinyagent-ts/
 
 ## Quick Start
 
-**Requirements:**  
+**Requirements:**
+
 - Node.js (v18+ recommended)
 - npm
 
 **1. Clone the repository and install dependencies:**
+
 ```bash
 git clone <repository-url>
 cd tinyagent-ts
@@ -105,32 +107,50 @@ npm install
 ```
 
 **2. Set up your OpenRouter API key:**
+
 ```bash
 echo 'OPENROUTER_API_KEY="sk-or-..."' > .env
 ```
 
 **3. Run the CalcAgent demo:**
+
 ```bash
 npx ts-node src/index.ts
 ```
 
 **4. Try other examples:**
+
 ```bash
 npx ts-node examples/math-agent.ts
 npx ts-node examples/react.ts
 npx ts-node examples/todo-agent.ts
 ```
 
+### 🔧 CLI Usage
+
+```bash
+# basic chat (defaults shown)
+npx tinyagent --model openai/gpt-4o-mini --trace
+
+# custom system prompt
+npx tinyagent -p ./prompts/customer-support.md
+```
+
+_Run `tinyagent --help` for all options._
+
 **Interaction Example:**
+
 ```text
 {"tool":"add","args":{"a":1,"b":2}}
 {"observation":"3"}
 {"tool":"final_answer","args":{"answer":"3"}}
 ```
+
 - Every tool call is followed by an `{ "observation": ... }` message.
 - Reply with another JSON action or finish with `final_answer`.
 
 **Notes:**
+
 - By default, the agent makes a single tool call. Increase `maxSteps` in `MultiStepAgent` or `runMultiStep` for longer chains.
 - Every conversation **must** terminate with `{ "tool": "final_answer", "args": { "answer": "..." } }`. Plain text replies are rejected.
 
@@ -184,7 +204,7 @@ tinyAgent‑ts implements the strict [ReAct](https://arxiv.org/abs/2210.03629) (
 6. **Reflexion:**  
    After each Observation, the agent can send a `Reflect:` message for self-critique and optional correction.
 
-7. **See Examples:**  
+7. **See Examples:**
    - [`examples/react.ts`](examples/react.ts:1): Minimal ReAct agent.
    - [`examples/react-calculator.ts`](examples/react-calculator.ts:1): Calculator with ReAct reasoning.
 
