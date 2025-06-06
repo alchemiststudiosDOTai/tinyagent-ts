@@ -56,7 +56,7 @@ tinyagent-ts/
 │   │   ├── default-tools.ts   # Default tool collection
 │   │   ├── file.ts            # File operations tool
 │   │   ├── grep.ts            # Search tool
-│   │   ├── duckSearch.ts      # Web search tool
+│   │   ├── web-search-tool.ts # Web search tool (Brave Search)
 │   │   ├── pythonExec.ts      # Python execution tool
 │   │   ├── uuid.ts            # UUID generation tool
 │   │   ├── final_answer.ts    # Answer completion tool

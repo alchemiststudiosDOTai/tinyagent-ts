@@ -4,7 +4,7 @@ import { FileTool } from './file-tool';
 import { GrepTool } from './grep-tool';
 import { UuidTool } from './uuid-tool';
 import { HumanLoopTool } from './human-loop-tool';
-import { DuckDuckGoSearchTool } from './duckduckgo-search-tool';
+import { WebSearchTool } from './web-search-tool';
 import { pythonExecTool } from './pythonExec';
 
 /**
@@ -16,7 +16,7 @@ export const defaultTools = {
   grep: new GrepTool(),
   uuid: new UuidTool(),
   humanLoop: new HumanLoopTool(),
-  duckSearch: new DuckDuckGoSearchTool(),
+  webSearch: new WebSearchTool(),
   python: pythonExecTool,
 } as const;
 
@@ -40,7 +40,7 @@ export function getDefaultTools(options?: GetDefaultToolsOptions): Tool[] {
 export const defaultToolCategories = {
   filesystem: [defaultTools.file, defaultTools.grep],
   utility: [defaultTools.uuid],
-  search: [defaultTools.duckSearch],
+  search: [defaultTools.webSearch],
   interaction: [defaultTools.humanLoop],
   completion: [defaultTools.finalAnswer],
   execution: [defaultTools.python],

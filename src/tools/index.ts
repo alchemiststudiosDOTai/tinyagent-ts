@@ -7,7 +7,7 @@ export * from './file-tool';
 export * from './grep-tool';
 export * from './uuid-tool';
 export * from './human-loop-tool';
-export * from './duckduckgo-search-tool';
+export * from './web-search-tool';
 
 // Default tool presets
 export * from './default-tools'; 
