@@ -6,6 +6,7 @@ import { UuidTool } from './uuid-tool';
 import { HumanLoopTool } from './human-loop-tool';
 import { DuckDuckGoSearchTool } from './duckduckgo-search-tool';
 import { pythonExecTool } from './pythonExec';
+import { getBrowserTools } from './browser-tools';
 
 /**
  * Default tool instances
@@ -18,6 +19,7 @@ export const defaultTools = {
   humanLoop: new HumanLoopTool(),
   duckSearch: new DuckDuckGoSearchTool(),
   python: pythonExecTool,
+  ...Object.fromEntries(getBrowserTools().map(tool => [tool.name.replace(/_/g, ''), tool])),
 } as const;
 
 /**
@@ -40,10 +42,17 @@ export function getDefaultTools(options?: GetDefaultToolsOptions): Tool[] {
 export const defaultToolCategories = {
   filesystem: [defaultTools.file, defaultTools.grep],
   utility: [defaultTools.uuid],
-  search: [defaultTools.duckSearch],
+  search: [defaultTools.duckSearch, defaultTools.websearch],
   interaction: [defaultTools.humanLoop],
   completion: [defaultTools.finalAnswer],
   execution: [defaultTools.python],
+  browser: [
+    defaultTools.visitpage,
+    defaultTools.pagedown,
+    defaultTools.pageup,
+    defaultTools.findonpagectrlf,
+    defaultTools.findnext
+  ],
 } as const;
 
 /**

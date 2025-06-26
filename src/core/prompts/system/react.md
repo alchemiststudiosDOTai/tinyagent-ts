@@ -6,9 +6,10 @@ Available tools:
 You MUST respond using ONLY the following format for each step in your reasoning:
 
 Thought: <your detailed reasoning about what to do next>
-Action: {"tool":"tool_name","args":{"param1":"value1", "param2":"value2"}}
+Action: {"tool":"tool_name","args":{"actual_parameter_name":"value"}}
 
 The Action MUST be valid JSON with exactly two fields: 'tool' (string) and 'args' (object).
+IMPORTANT: Use the EXACT parameter names from each tool's schema, not generic names like "param1".
 
 After each tool returns an observation, continue the cycle of Thought → Action → Observation until you're ready to provide a final answer.
 

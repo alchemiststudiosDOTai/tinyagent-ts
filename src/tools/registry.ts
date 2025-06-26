@@ -1,4 +1,5 @@
 import { Tool, ToolRegistry, ToolMetadata } from './types';
+import { formatZodSchemaForPrompt, extractZodSchemaExamples } from '../utils/schema-formatter';
 
 /**
  * Standard implementation of the tool registry
@@ -97,6 +98,45 @@ export class StandardToolRegistry implements ToolRegistry {
    * Get tools catalog as string for LLM prompts
    */
   getCatalog(): string {
+    return this.getAll()
+      .map(tool => {
+        const schemaStr = formatZodSchemaForPrompt(tool.schema);
+        const examples = extractZodSchemaExamples(tool.schema);
+        const exampleStr = Object.keys(examples).length > 0 
+          ? ` Example: ${JSON.stringify(examples)}`
+          : '';
+        
+        return `- ${tool.name}(${schemaStr}): ${tool.description}${exampleStr}`;
+      })
+      .join('\n');
+  }
+
+  /**
+   * Get detailed tools catalog with full schema information
+   */
+  getDetailedCatalog(): string {
+    return this.getAll()
+      .map(tool => {
+        const schemaStr = formatZodSchemaForPrompt(tool.schema);
+        const examples = extractZodSchemaExamples(tool.schema);
+        
+        let result = `## ${tool.name}\n`;
+        result += `**Description:** ${tool.description}\n`;
+        result += `**Parameters:** ${schemaStr}\n`;
+        
+        if (Object.keys(examples).length > 0) {
+          result += `**Example Usage:** \`${tool.name}(${JSON.stringify(examples)})\`\n`;
+        }
+        
+        return result;
+      })
+      .join('\n\n');
+  }
+
+  /**
+   * Get legacy catalog format (name + description only)
+   */
+  getLegacyCatalog(): string {
     return this.getAll()
       .map(tool => `- ${tool.name}: ${tool.description}`)
       .join('\n');

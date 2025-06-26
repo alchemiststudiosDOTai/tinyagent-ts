@@ -21,6 +21,7 @@ export { StandardToolRegistry as ToolRegistry } from './tools';
 export * from './schemas';
 export * from './utils/steps';
 export { Scratchpad } from './utils/scratchpad';
+export * from './utils/schema-formatter';
 
 // Specialized tools
 export { pythonExecTool } from './tools/pythonExec';

@@ -9,5 +9,9 @@ export * from './uuid-tool';
 export * from './human-loop-tool';
 export * from './duckduckgo-search-tool';
 
+// Browser tools
+export * from './text-browser';
+export * from './browser-tools';
+
 // Default tool presets
 export * from './default-tools'; 
