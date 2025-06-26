@@ -1,11 +1,35 @@
 // New modular architecture exports
 export { ModelManager, OpenRouterProvider } from './model';
-export { LLMMessage, ModelConfig, ModelResponse, ModelProvider, ModelError } from './model/types';
+export {
+  LLMMessage,
+  ModelConfig,
+  ModelResponse,
+  ModelProvider,
+  ModelError,
+} from './model/types';
 export { UnifiedAgent } from './agent/unified-agent';
-export { AgentConfig, AgentExecutionOptions, AgentResult, AgentMode, AgentGenerationError } from './agent/types';
+export {
+  AgentConfig,
+  AgentExecutionOptions,
+  AgentResult,
+  AgentMode,
+  AgentGenerationError,
+} from './agent/types';
 export { StandardToolRegistry, Tool, BaseTool, FinalAnswerTool } from './tools';
-export { ReActEngine, ReActStateManager, parseReActResponse, validateFinalAnswer, FinalAnswerSchema } from './react';
-export { ReActConfig, ReActResult, ReActTool, ActionStep, ReActStep } from './react/types';
+export {
+  ReActEngine,
+  ReActStateManager,
+  parseReActResponse,
+  validateFinalAnswer,
+  FinalAnswerSchema,
+} from './react';
+export {
+  ReActConfig,
+  ReActResult,
+  ReActTool,
+  ActionStep,
+  ReActStep,
+} from './react/types';
 
 // Main agent export (unified agent as the primary Agent)
 export { UnifiedAgent as Agent } from './agent/unified-agent';

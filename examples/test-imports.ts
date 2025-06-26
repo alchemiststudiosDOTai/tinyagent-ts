@@ -8,15 +8,15 @@ console.log('✅ Successfully imported Agent and getDefaultTools');
 
 async function testAPI() {
   console.log('🧪 Testing API without execution...');
-  
+
   // Test 1: Agent creation
   try {
     const agent = new Agent({
-      model: { 
+      model: {
         name: 'test-model',
-        apiKey: 'dummy-key-for-testing' // Provide dummy key for testing
+        apiKey: 'dummy-key-for-testing', // Provide dummy key for testing
       },
-      mode: 'react'
+      mode: 'react',
     });
     console.log('✅ Agent creation successful');
   } catch (error) {
@@ -28,13 +28,17 @@ async function testAPI() {
   try {
     const tools = getDefaultTools();
     console.log('✅ Default tools loaded:', tools.length, 'tools');
-    tools.forEach(tool => console.log(`  - ${tool.name}: ${tool.description}`));
+    tools.forEach((tool) =>
+      console.log(`  - ${tool.name}: ${tool.description}`)
+    );
   } catch (error) {
     console.error('❌ Default tools loading failed:', error);
     return;
   }
 
-  console.log('🎉 All API tests passed! The new ergonomic interface works correctly.');
+  console.log(
+    '🎉 All API tests passed! The new ergonomic interface works correctly.'
+  );
 }
 
 testAPI().catch(console.error);

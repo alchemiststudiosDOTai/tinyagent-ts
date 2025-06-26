@@ -16,21 +16,21 @@ async function testSchemaEnhancement() {
 
   // Register browser tools
   const browserTools = getBrowserTools();
-  browserTools.forEach(tool => agent.registerTool(tool));
+  browserTools.forEach((tool) => agent.registerTool(tool));
 
   // Test the enhanced tool catalog
   const registry = agent.getToolRegistry();
-  
+
   console.log('📋 ENHANCED TOOL CATALOG (with Zod schemas):');
   console.log('='.repeat(60));
   console.log(registry.getCatalog());
   console.log('='.repeat(60));
-  
+
   console.log('\n📋 DETAILED TOOL CATALOG:');
   console.log('='.repeat(60));
   console.log(registry.getDetailedCatalog());
   console.log('='.repeat(60));
-  
+
   console.log('\n📋 LEGACY CATALOG (for comparison):');
   console.log('='.repeat(60));
   console.log(registry.getLegacyCatalog());
@@ -38,17 +38,20 @@ async function testSchemaEnhancement() {
 
   // Test with a simple task to see if parameters are used correctly
   console.log('\n🤖 Testing parameter usage with enhanced schema...\n');
-  
-  const simpleTask = 'Visit the URL https://example.com and tell me the page title';
-  
+
+  const simpleTask =
+    'Visit the URL https://example.com and tell me the page title';
+
   try {
     const result = await agent.execute(simpleTask);
-    
+
     console.log('✅ SUCCESS! Enhanced schema working correctly.');
     console.log(`Result: ${result.data?.answer || 'No answer'}`);
-    
   } catch (error) {
-    console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+    console.error(
+      '❌ Error:',
+      error instanceof Error ? error.message : String(error)
+    );
   }
 }
 

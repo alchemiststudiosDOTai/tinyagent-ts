@@ -98,7 +98,9 @@ export class ReActEngine {
         if (parsed.action) {
           this.state.addAction(parsed.action);
           if (enableTrace) {
-            console.log(`Action: ${parsed.action.tool}(${JSON.stringify(parsed.action.args)})`);
+            console.log(
+              `Action: ${parsed.action.tool}(${JSON.stringify(parsed.action.args)})`
+            );
           }
           if (onStep) {
             onStep(parsed.action);
@@ -146,7 +148,8 @@ export class ReActEngine {
               observation = JSON.stringify(result);
             }
           } catch (error) {
-            observation = error instanceof Error ? error.message : String(error);
+            observation =
+              error instanceof Error ? error.message : String(error);
           }
 
           this.state.addObservation(observation);
@@ -167,10 +170,13 @@ export class ReActEngine {
             throw new Error('ReAct execution was aborted');
           }
 
-          const reflectResponse = await this.modelManager.chat(reflectMessages, {
-            model: options.model,
-            abortSignal: options.abortSignal,
-          });
+          const reflectResponse = await this.modelManager.chat(
+            reflectMessages,
+            {
+              model: options.model,
+              abortSignal: options.abortSignal,
+            }
+          );
 
           const reflectParsed = parseReActResponse(reflectResponse.content);
 
@@ -209,7 +215,10 @@ export class ReActEngine {
               if (!tool) {
                 obs = `Unknown tool: ${reflectParsed.action.tool}`;
               } else {
-                const result = await tool.execute(reflectParsed.action.args || {}, options.abortSignal);
+                const result = await tool.execute(
+                  reflectParsed.action.args || {},
+                  options.abortSignal
+                );
                 usedTool = true;
                 obs = JSON.stringify(result);
               }
@@ -224,13 +233,17 @@ export class ReActEngine {
             this.state.addObservation(obs);
 
             if (enableTrace) {
-              if (reflectParsed.thought) console.log(`Thought: ${reflectParsed.thought}`);
-              console.log(`Action: ${reflectParsed.action.tool}(${JSON.stringify(reflectParsed.action.args)})`);
+              if (reflectParsed.thought)
+                console.log(`Thought: ${reflectParsed.thought}`);
+              console.log(
+                `Action: ${reflectParsed.action.tool}(${JSON.stringify(reflectParsed.action.args)})`
+              );
               console.log(`Observation: ${obs}`);
             }
 
             if (onStep) {
-              if (reflectParsed.thought) onStep({ type: 'thought', text: reflectParsed.thought });
+              if (reflectParsed.thought)
+                onStep({ type: 'thought', text: reflectParsed.thought });
               onStep(reflectParsed.action);
               onStep({ type: 'observation', text: obs });
             }
@@ -247,13 +260,19 @@ export class ReActEngine {
       }
 
       // Enforce final answer if not provided
-      finalAnswer = await this.enforceFinalAnswer(finalAnswer, systemPrompt, options);
+      finalAnswer = await this.enforceFinalAnswer(
+        finalAnswer,
+        systemPrompt,
+        options
+      );
 
       // Validate final answer structure
       try {
         finalAnswer = validateFinalAnswer(finalAnswer);
       } catch (error) {
-        throw new Error(`Final answer validation failed: ${error instanceof Error ? error.message : String(error)}`);
+        throw new Error(
+          `Final answer validation failed: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
 
       const result: ReActResult = {
@@ -299,13 +318,16 @@ export class ReActEngine {
       return currentFinalAnswer;
     }
 
-    console.warn('ReAct loop completed without final_answer tool call. Forcing final answer generation.');
-    
+    console.warn(
+      'ReAct loop completed without final_answer tool call. Forcing final answer generation.'
+    );
+
     // Create a final answer request
     const finalMessages = this.state.toMessages(systemPrompt);
-    finalMessages.push({ 
-      role: 'user', 
-      content: 'You must provide a final answer now using the final_answer tool. Summarize your findings and provide a conclusive response.'
+    finalMessages.push({
+      role: 'user',
+      content:
+        'You must provide a final answer now using the final_answer tool. Summarize your findings and provide a conclusive response.',
     });
 
     try {
@@ -315,7 +337,7 @@ export class ReActEngine {
       });
 
       const finalParsed = parseReActResponse(finalResponse.content);
-      
+
       if (finalParsed.action && finalParsed.action.tool === 'final_answer') {
         const finalAnswer = finalParsed.action.args;
         this.state.addThought(finalParsed.thought || 'Providing final answer');
@@ -325,21 +347,29 @@ export class ReActEngine {
       } else {
         // Fallback: create a final answer from the most relevant tool execution result
         const steps = this.state.getSteps();
-        const observations = steps.filter(s => s.type === 'observation');
-        
+        const observations = steps.filter((s) => s.type === 'observation');
+
         // Try to find the most recent meaningful tool execution result (not action text)
         let answerContent = 'Task completed';
-        
+
         // Look for observations that contain actual results (not action descriptions)
         for (let i = observations.length - 1; i >= 0; i--) {
           const obs = observations[i];
-          if (obs.text && !obs.text.startsWith('Action:') && !obs.text.startsWith('{\"answer\":')) {
+          if (
+            obs.text &&
+            !obs.text.startsWith('Action:') &&
+            !obs.text.startsWith('{\"answer\":')
+          ) {
             try {
               // If observation is JSON, try to extract meaningful content
               const parsed = JSON.parse(obs.text);
               if (typeof parsed === 'string') {
                 // If it's a UUID or similar string result, format it nicely
-                if (parsed.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                if (
+                  parsed.match(
+                    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+                  )
+                ) {
                   answerContent = `The generated UUID is: ${parsed}`;
                 } else {
                   answerContent = parsed;
@@ -358,22 +388,24 @@ export class ReActEngine {
             }
           }
         }
-        
+
         // If no meaningful observation found, use the final response
         if (answerContent === 'Task completed' && finalResponse.content) {
           answerContent = finalResponse.content;
         }
-        
+
         const finalAnswer = { answer: answerContent };
-        this.state.addThought('Providing final answer based on previous results');
-        
+        this.state.addThought(
+          'Providing final answer based on previous results'
+        );
+
         // Create proper ActionStep for final_answer
         const finalAnswerAction: ActionStep = {
           type: 'action',
           mode: 'json',
           tool: 'final_answer',
           args: finalAnswer,
-          text: JSON.stringify({ tool: 'final_answer', args: finalAnswer })
+          text: JSON.stringify({ tool: 'final_answer', args: finalAnswer }),
         };
         this.state.addAction(finalAnswerAction);
         this.state.addObservation(JSON.stringify(finalAnswer));
@@ -398,4 +430,4 @@ export class ReActEngine {
   reset(): void {
     this.state.clear();
   }
-} 
+}

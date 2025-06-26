@@ -101,7 +101,10 @@ export interface ReActTool {
   name: string;
   description: string;
   schema?: any;
-  execute(args: Record<string, unknown>, abortSignal?: AbortSignal): Promise<unknown>;
+  execute(
+    args: Record<string, unknown>,
+    abortSignal?: AbortSignal
+  ): Promise<unknown>;
 }
 
 /**
@@ -113,4 +116,4 @@ export interface ReActResult {
   error?: Error;
   steps: ReActStep[];
   finalAnswer?: any;
-} 
+}

@@ -51,7 +51,10 @@ export interface ModelProvider {
  * Model error types
  */
 export class ModelError extends Error {
-  constructor(message: string, public readonly statusCode?: number) {
+  constructor(
+    message: string,
+    public readonly statusCode?: number
+  ) {
     super(message);
     this.name = 'ModelError';
   }
@@ -69,4 +72,4 @@ export class ModelAbortError extends ModelError {
     super(message);
     this.name = 'ModelAbortError';
   }
-} 
+}

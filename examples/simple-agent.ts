@@ -11,17 +11,22 @@ async function main() {
   // Register default tools (file, search, uuid, human-loop, etc.)
   // Note: final_answer tool is automatically registered by the agent
   const tools = getDefaultTools();
-  tools.forEach(tool => agent.registerTool(tool));
+  tools.forEach((tool) => agent.registerTool(tool));
 
   try {
     // Simple task execution
-    const result = await agent.execute('Generate a UUID and tell me what it is. Use the final_answer tool to provide your response.');
+    const result = await agent.execute(
+      'Generate a UUID and tell me what it is. Use the final_answer tool to provide your response.'
+    );
     console.log('Question: Generate a UUID and tell me what it is');
-    console.log('Answer:', result.data?.answer || result.data || 'No response received');
+    console.log(
+      'Answer:',
+      result.data?.answer || result.data || 'No response received'
+    );
   } catch (error) {
     console.error('Error:', error);
   }
 }
 
 // Run the agent
-main().catch(console.error); 
+main().catch(console.error);

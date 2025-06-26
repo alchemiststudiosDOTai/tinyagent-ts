@@ -1,0 +1,9 @@
+{
+  "zod-schema-enhancement": {
+    "value": "Enhanced tool registry with Zod schema integration - provides exact parameter names, types, descriptions and examples to prevent model hallucination of wrong parameter names",
+    "created": "2025-06-26T23:16:05Z",
+    "updated": "2025-06-26T23:16:05Z",
+    "agent": "default",
+    "tags": []
+  }
+}

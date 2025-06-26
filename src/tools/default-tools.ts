@@ -19,7 +19,9 @@ export const defaultTools = {
   humanLoop: new HumanLoopTool(),
   duckSearch: new DuckDuckGoSearchTool(),
   python: pythonExecTool,
-  ...Object.fromEntries(getBrowserTools().map(tool => [tool.name.replace(/_/g, ''), tool])),
+  ...Object.fromEntries(
+    getBrowserTools().map((tool) => [tool.name.replace(/_/g, ''), tool])
+  ),
 } as const;
 
 /**
@@ -33,7 +35,7 @@ export function getDefaultTools(options?: GetDefaultToolsOptions): Tool[] {
   const opts = options ?? {};
   const tools = Object.values(defaultTools);
   if (opts.includeFinalAnswer) return tools;
-  return tools.filter(t => t.name !== 'final_answer');
+  return tools.filter((t) => t.name !== 'final_answer');
 }
 
 /**
@@ -51,14 +53,16 @@ export const defaultToolCategories = {
     defaultTools.pagedown,
     defaultTools.pageup,
     defaultTools.findonpagectrlf,
-    defaultTools.findnext
+    defaultTools.findnext,
   ],
 } as const;
 
 /**
  * Get tools by category
  */
-export function getToolsByCategory(category: keyof typeof defaultToolCategories): Tool[] {
+export function getToolsByCategory(
+  category: keyof typeof defaultToolCategories
+): Tool[] {
   return [...defaultToolCategories[category]];
 }
 
@@ -66,5 +70,7 @@ export function getToolsByCategory(category: keyof typeof defaultToolCategories)
  * Get all categories
  */
 export function getToolCategories(): (keyof typeof defaultToolCategories)[] {
-  return Object.keys(defaultToolCategories) as (keyof typeof defaultToolCategories)[];
-} 
+  return Object.keys(
+    defaultToolCategories
+  ) as (keyof typeof defaultToolCategories)[];
+}

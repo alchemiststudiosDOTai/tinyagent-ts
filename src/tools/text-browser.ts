@@ -61,14 +61,16 @@ export class SimpleTextBrowser {
   private findLastResult?: number;
   private requestTimeout: number;
 
-  constructor(options: {
-    viewportSize?: number;
-    requestTimeout?: number;
-    startPage?: string;
-  } = {}) {
+  constructor(
+    options: {
+      viewportSize?: number;
+      requestTimeout?: number;
+      startPage?: string;
+    } = {}
+  ) {
     this.viewportSize = options.viewportSize || 8192; // 8KB default viewport
     this.requestTimeout = options.requestTimeout || 30000; // 30s timeout
-    
+
     if (options.startPage) {
       this.setAddress(options.startPage);
     } else {
@@ -80,7 +82,9 @@ export class SimpleTextBrowser {
    * Get current page address
    */
   get address(): string {
-    return this.history.length > 0 ? this.history[this.history.length - 1].url : 'about:blank';
+    return this.history.length > 0
+      ? this.history[this.history.length - 1].url
+      : 'about:blank';
   }
 
   /**
@@ -106,7 +110,7 @@ export class SimpleTextBrowser {
     // Add to history
     this.history.push({
       url: urlOrPath,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // Handle special URIs
@@ -118,7 +122,11 @@ export class SimpleTextBrowser {
 
     // Handle relative URLs
     let targetUrl = urlOrPath;
-    if (!urlOrPath.startsWith('http://') && !urlOrPath.startsWith('https://') && !urlOrPath.startsWith('file://')) {
+    if (
+      !urlOrPath.startsWith('http://') &&
+      !urlOrPath.startsWith('https://') &&
+      !urlOrPath.startsWith('file://')
+    ) {
       if (this.history.length > 1) {
         const currentUrl = this.history[this.history.length - 2].url;
         try {
@@ -169,14 +177,20 @@ export class SimpleTextBrowser {
    */
   findOnPage(query: string): BrowserResponse | null {
     // If same query and same viewport, move to next result
-    if (query === this.findQuery && this.viewportCurrentPage === this.findLastResult) {
+    if (
+      query === this.findQuery &&
+      this.viewportCurrentPage === this.findLastResult
+    ) {
       return this.findNext();
     }
 
     // New search from current viewport
     this.findQuery = query;
-    const viewportMatch = this.findNextViewport(query, this.viewportCurrentPage);
-    
+    const viewportMatch = this.findNextViewport(
+      query,
+      this.viewportCurrentPage
+    );
+
     if (viewportMatch === null) {
       this.findLastResult = undefined;
       return null;
@@ -193,11 +207,13 @@ export class SimpleTextBrowser {
   findNext(): BrowserResponse | null {
     if (!this.findQuery) return null;
 
-    const startingViewport = this.findLastResult !== undefined ? this.findLastResult + 1 : 0;
-    const wrappedStart = startingViewport >= this.viewportPages.length ? 0 : startingViewport;
-    
+    const startingViewport =
+      this.findLastResult !== undefined ? this.findLastResult + 1 : 0;
+    const wrappedStart =
+      startingViewport >= this.viewportPages.length ? 0 : startingViewport;
+
     const viewportMatch = this.findNextViewport(this.findQuery, wrappedStart);
-    
+
     if (viewportMatch === null) {
       this.findLastResult = undefined;
       return null;
@@ -213,7 +229,7 @@ export class SimpleTextBrowser {
    */
   private getState(): BrowserResponse {
     const visitInfo = this.getVisitInfo();
-    
+
     return {
       success: true,
       content: this.pageContent,
@@ -224,8 +240,8 @@ export class SimpleTextBrowser {
         currentPage: this.viewportCurrentPage + 1,
         totalPages: this.viewportPages.length,
         visitedBefore: visitInfo.visited,
-        secondsAgo: visitInfo.secondsAgo
-      }
+        secondsAgo: visitInfo.secondsAgo,
+      },
     };
   }
 
@@ -235,17 +251,17 @@ export class SimpleTextBrowser {
   private getVisitInfo(): { visited: boolean; secondsAgo?: number } {
     const currentUrl = this.address;
     const now = Date.now();
-    
+
     // Look for previous visits (excluding current one)
     for (let i = this.history.length - 2; i >= 0; i--) {
       if (this.history[i].url === currentUrl) {
         return {
           visited: true,
-          secondsAgo: Math.round((now - this.history[i].timestamp) / 1000)
+          secondsAgo: Math.round((now - this.history[i].timestamp) / 1000),
         };
       }
     }
-    
+
     return { visited: false };
   }
 
@@ -255,7 +271,7 @@ export class SimpleTextBrowser {
   private setPageContent(content: string): void {
     this.pageContent = content;
     this.splitPages();
-    
+
     // Reset viewport if current page is out of bounds
     if (this.viewportCurrentPage >= this.viewportPages.length) {
       this.viewportCurrentPage = Math.max(0, this.viewportPages.length - 1);
@@ -267,7 +283,7 @@ export class SimpleTextBrowser {
    */
   private splitPages(): void {
     this.viewportPages = [];
-    
+
     if (this.pageContent.length === 0) {
       this.viewportPages.push({ start: 0, end: 0 });
       return;
@@ -275,14 +291,19 @@ export class SimpleTextBrowser {
 
     let startIdx = 0;
     while (startIdx < this.pageContent.length) {
-      let endIdx = Math.min(startIdx + this.viewportSize, this.pageContent.length);
-      
+      let endIdx = Math.min(
+        startIdx + this.viewportSize,
+        this.pageContent.length
+      );
+
       // Adjust to end on word boundary
-      while (endIdx < this.pageContent.length && 
-             !/[\s\t\r\n]/.test(this.pageContent[endIdx - 1])) {
+      while (
+        endIdx < this.pageContent.length &&
+        !/[\s\t\r\n]/.test(this.pageContent[endIdx - 1])
+      ) {
         endIdx++;
       }
-      
+
       this.viewportPages.push({ start: startIdx, end: endIdx });
       startIdx = endIdx;
     }
@@ -300,27 +321,33 @@ export class SimpleTextBrowser {
   /**
    * Find next viewport containing search query
    */
-  private findNextViewport(query: string, startingViewport: number): number | null {
+  private findNextViewport(
+    query: string,
+    startingViewport: number
+  ): number | null {
     if (!query.trim()) return null;
 
     // Normalize query for searching
-    const normalizedQuery = query.toLowerCase()
-      .replace(/\*/g, '.*')
-      .trim();
-    
+    const normalizedQuery = query.toLowerCase().replace(/\*/g, '.*').trim();
+
     if (!normalizedQuery) return null;
 
     // Create search indices (current to end, then start to current)
     const indices = [
-      ...Array.from({ length: this.viewportPages.length - startingViewport }, (_, i) => startingViewport + i),
-      ...Array.from({ length: startingViewport }, (_, i) => i)
+      ...Array.from(
+        { length: this.viewportPages.length - startingViewport },
+        (_, i) => startingViewport + i
+      ),
+      ...Array.from({ length: startingViewport }, (_, i) => i),
     ];
 
     // Search through viewports
     for (const i of indices) {
       const bounds = this.viewportPages[i];
-      const content = this.pageContent.slice(bounds.start, bounds.end).toLowerCase();
-      
+      const content = this.pageContent
+        .slice(bounds.start, bounds.end)
+        .toLowerCase();
+
       if (normalizedQuery.includes('.*')) {
         // Regex search
         try {
@@ -346,14 +373,17 @@ export class SimpleTextBrowser {
     try {
       // Create abort controller for timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        this.requestTimeout
+      );
 
       try {
         const response = await fetch(url, {
           signal: controller.signal,
           headers: {
-            'User-Agent': 'SimpleTextBrowser/1.0'
-          }
+            'User-Agent': 'SimpleTextBrowser/1.0',
+          },
         });
 
         clearTimeout(timeoutId);
@@ -363,7 +393,7 @@ export class SimpleTextBrowser {
         }
 
         const contentType = response.headers.get('content-type') || '';
-        
+
         if (contentType.includes('text/html')) {
           const html = await response.text();
           const { title, textContent } = this.convertHtmlToText(html);
@@ -376,18 +406,18 @@ export class SimpleTextBrowser {
         } else {
           throw new Error(`Unsupported content type: ${contentType}`);
         }
-
       } finally {
         clearTimeout(timeoutId);
       }
-
     } catch (error) {
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           throw new Error(`Request timeout: ${url}`);
         }
         this.pageTitle = 'Error';
-        this.setPageContent(`# Error Loading Page\n\nFailed to load ${url}\n\nError: ${error.message}`);
+        this.setPageContent(
+          `# Error Loading Page\n\nFailed to load ${url}\n\nError: ${error.message}`
+        );
       } else {
         throw new Error(`Unknown error loading ${url}: ${String(error)}`);
       }
@@ -397,18 +427,25 @@ export class SimpleTextBrowser {
   /**
    * Convert HTML to readable text content
    */
-  private convertHtmlToText(html: string): { title: string; textContent: string } {
+  private convertHtmlToText(html: string): {
+    title: string;
+    textContent: string;
+  } {
     try {
       const dom = new JSDOM(html);
       const document = dom.window.document;
 
       // Remove script and style elements
-      const scriptsAndStyles = document.querySelectorAll('script, style, noscript');
-      scriptsAndStyles.forEach(element => element.remove());
+      const scriptsAndStyles = document.querySelectorAll(
+        'script, style, noscript'
+      );
+      scriptsAndStyles.forEach((element) => element.remove());
 
       // Extract title
       const titleElement = document.querySelector('title');
-      const title = titleElement ? titleElement.textContent?.trim() || 'Untitled' : 'Untitled';
+      const title = titleElement
+        ? titleElement.textContent?.trim() || 'Untitled'
+        : 'Untitled';
 
       // Convert to text while preserving some structure
       const body = document.body || document.documentElement;
@@ -416,11 +453,12 @@ export class SimpleTextBrowser {
 
       return {
         title,
-        textContent: this.cleanupText(textContent)
+        textContent: this.cleanupText(textContent),
       };
-
     } catch (error) {
-      throw new Error(`Failed to parse HTML: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to parse HTML: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -429,16 +467,18 @@ export class SimpleTextBrowser {
    */
   private extractTextWithStructure(element: Element): string {
     let text = '';
-    
+
     for (const node of Array.from(element.childNodes)) {
-      if (node.nodeType === 3) { // Text node
+      if (node.nodeType === 3) {
+        // Text node
         const textContent = node.textContent?.trim();
         if (textContent) {
           text += textContent + ' ';
         }
-      } else if (node.nodeType === 1) { // Element node
+      } else if (node.nodeType === 1) {
+        // Element node
         const tagName = (node as Element).tagName.toLowerCase();
-        
+
         // Add structure for headers and paragraphs
         if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
           text += '\n\n# ';
@@ -452,17 +492,21 @@ export class SimpleTextBrowser {
             continue; // Skip recursive call for links
           }
         }
-        
+
         // Recursively process child elements
         text += this.extractTextWithStructure(node as Element);
-        
+
         // Add line breaks after block elements
-        if (['p', 'div', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+        if (
+          ['p', 'div', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(
+            tagName
+          )
+        ) {
           text += '\n';
         }
       }
     }
-    
+
     return text;
   }
 
@@ -470,13 +514,15 @@ export class SimpleTextBrowser {
    * Clean up extracted text
    */
   private cleanupText(text: string): string {
-    return text
-      // Normalize whitespace
-      .replace(/[ \t]+/g, ' ')
-      // Remove excessive line breaks
-      .replace(/\n\s*\n\s*\n/g, '\n\n')
-      // Clean up edges
-      .trim();
+    return (
+      text
+        // Normalize whitespace
+        .replace(/[ \t]+/g, ' ')
+        // Remove excessive line breaks
+        .replace(/\n\s*\n\s*\n/g, '\n\n')
+        // Clean up edges
+        .trim()
+    );
   }
 
   /**

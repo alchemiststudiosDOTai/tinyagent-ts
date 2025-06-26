@@ -14,4 +14,4 @@ export * from './text-browser';
 export * from './browser-tools';
 
 // Default tool presets
-export * from './default-tools'; 
+export * from './default-tools';

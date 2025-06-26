@@ -16,14 +16,21 @@ async function main() {
       maxSteps: 10,
       enableTrace: true,
       enableReflexion: false,
-    }
+    },
   });
 
   // Register default tools
   const tools = getDefaultTools();
-  tools.forEach(tool => agent.registerTool(tool));
+  tools.forEach((tool) => agent.registerTool(tool));
 
-  console.log('Available tools:', agent.getToolRegistry().getAll().map(t => t.name).join(', '));
+  console.log(
+    'Available tools:',
+    agent
+      .getToolRegistry()
+      .getAll()
+      .map((t) => t.name)
+      .join(', ')
+  );
   console.log();
 
   try {
@@ -36,12 +43,11 @@ async function main() {
 
       Use the tools available to complete each step.
     `);
-    
+
     console.log('\n=== FINAL RESULT ===');
     console.log('Success:', result.success);
     console.log('Data:', JSON.stringify(result.data, null, 2));
     console.log('Steps:', result.metadata?.steps?.length);
-    
   } catch (error) {
     console.error('Error:', error);
   }

@@ -4,10 +4,9 @@ import { z } from 'zod';
  * Schema for validating final answer structure
  */
 export const FinalAnswerSchema = z.object({
-  answer: z.unknown().refine(
-    (val) => val !== undefined && val !== null,
-    { message: "Answer cannot be undefined or null" }
-  )
+  answer: z.unknown().refine((val) => val !== undefined && val !== null, {
+    message: 'Answer cannot be undefined or null',
+  }),
 });
 
 export type FinalAnswer = z.infer<typeof FinalAnswerSchema>;
@@ -20,8 +19,10 @@ export function validateFinalAnswer(rawAnswer: unknown): FinalAnswer {
     return FinalAnswerSchema.parse(rawAnswer);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw new Error(`Invalid final answer structure: ${error.errors.map(e => e.message).join(', ')}`);
+      throw new Error(
+        `Invalid final answer structure: ${error.errors.map((e) => e.message).join(', ')}`
+      );
     }
     throw error;
   }
-} 
+}

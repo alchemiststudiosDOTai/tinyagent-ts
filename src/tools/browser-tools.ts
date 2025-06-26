@@ -14,7 +14,7 @@ function getBrowser(): SimpleTextBrowser {
   if (!sharedBrowser) {
     sharedBrowser = new SimpleTextBrowser({
       viewportSize: 8192,
-      requestTimeout: 30000
+      requestTimeout: 30000,
     });
   }
   return sharedBrowser;
@@ -25,17 +25,17 @@ function getBrowser(): SimpleTextBrowser {
  */
 function formatBrowserResponse(response: BrowserResponse): string {
   let header = `Address: ${response.url}\n`;
-  
+
   if (response.title) {
     header += `Title: ${response.title}\n`;
   }
-  
+
   if (response.metadata?.visitedBefore && response.metadata.secondsAgo) {
     header += `You previously visited this page ${response.metadata.secondsAgo} seconds ago.\n`;
   }
-  
+
   header += `Viewport position: Showing page ${response.metadata?.currentPage || 1} of ${response.metadata?.totalPages || 1}.\n`;
-  
+
   return header.trim() + '\n=======================\n' + response.viewport;
 }
 
@@ -44,29 +44,37 @@ function formatBrowserResponse(response: BrowserResponse): string {
  */
 export class VisitPageTool extends BaseTool {
   name = 'visit_page';
-  description = 'Visit a webpage at a given URL and return its text content. Works with regular web pages and converts HTML to readable text.';
+  description =
+    'Visit a webpage at a given URL and return its text content. Works with regular web pages and converts HTML to readable text.';
   schema = z.object({
-    url: z.string().describe('The URL of the webpage to visit (absolute or relative)')
+    url: z
+      .string()
+      .describe('The URL of the webpage to visit (absolute or relative)'),
   });
 
-  async execute(args: { url: string }, abortSignal?: AbortSignal): Promise<string> {
+  async execute(
+    args: { url: string },
+    abortSignal?: AbortSignal
+  ): Promise<string> {
     if (abortSignal?.aborted) {
       throw new Error('Operation was aborted');
     }
 
     const { url } = this.validateArgs(args);
-    
+
     try {
       const browser = getBrowser();
       const response = await browser.visitPage(url);
-      
+
       if (abortSignal?.aborted) {
         throw new Error('Operation was aborted');
       }
-      
+
       return formatBrowserResponse(response);
     } catch (error) {
-      throw new Error(`Failed to visit page: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to visit page: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 }
@@ -76,7 +84,8 @@ export class VisitPageTool extends BaseTool {
  */
 export class PageDownTool extends BaseTool {
   name = 'page_down';
-  description = 'Scroll the viewport DOWN one page-length in the current webpage and return the new viewport content.';
+  description =
+    'Scroll the viewport DOWN one page-length in the current webpage and return the new viewport content.';
   schema = z.object({});
 
   async execute(args: {}, abortSignal?: AbortSignal): Promise<string> {
@@ -89,7 +98,9 @@ export class PageDownTool extends BaseTool {
       const response = browser.pageDown();
       return formatBrowserResponse(response);
     } catch (error) {
-      throw new Error(`Failed to scroll down: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to scroll down: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 }
@@ -99,7 +110,8 @@ export class PageDownTool extends BaseTool {
  */
 export class PageUpTool extends BaseTool {
   name = 'page_up';
-  description = 'Scroll the viewport UP one page-length in the current webpage and return the new viewport content.';
+  description =
+    'Scroll the viewport UP one page-length in the current webpage and return the new viewport content.';
   schema = z.object({});
 
   async execute(args: {}, abortSignal?: AbortSignal): Promise<string> {
@@ -112,7 +124,9 @@ export class PageUpTool extends BaseTool {
       const response = browser.pageUp();
       return formatBrowserResponse(response);
     } catch (error) {
-      throw new Error(`Failed to scroll up: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to scroll up: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 }
@@ -122,35 +136,48 @@ export class PageUpTool extends BaseTool {
  */
 export class FindOnPageTool extends BaseTool {
   name = 'find_on_page_ctrl_f';
-  description = 'Search for text on the current page and scroll to the first occurrence. Equivalent to Ctrl+F. Supports wildcards with *.';
+  description =
+    'Search for text on the current page and scroll to the first occurrence. Equivalent to Ctrl+F. Supports wildcards with *.';
   schema = z.object({
-    search_string: z.string().describe('The text to search for on the page. Supports wildcards like * for pattern matching.')
+    search_string: z
+      .string()
+      .describe(
+        'The text to search for on the page. Supports wildcards like * for pattern matching.'
+      ),
   });
 
-  async execute(args: { search_string: string }, abortSignal?: AbortSignal): Promise<string> {
+  async execute(
+    args: { search_string: string },
+    abortSignal?: AbortSignal
+  ): Promise<string> {
     if (abortSignal?.aborted) {
       throw new Error('Operation was aborted');
     }
 
     const { search_string } = this.validateArgs(args);
-    
+
     try {
       const browser = getBrowser();
       const response = browser.findOnPage(search_string);
-      
+
       if (abortSignal?.aborted) {
         throw new Error('Operation was aborted');
       }
-      
+
       if (!response) {
         const currentState = browser.visitPage(browser.address);
         const header = `Address: ${browser.address}\n`;
-        return header + `=======================\nThe search string '${search_string}' was not found on this page.`;
+        return (
+          header +
+          `=======================\nThe search string '${search_string}' was not found on this page.`
+        );
       }
-      
+
       return formatBrowserResponse(response);
     } catch (error) {
-      throw new Error(`Failed to search on page: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to search on page: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 }
@@ -160,7 +187,8 @@ export class FindOnPageTool extends BaseTool {
  */
 export class FindNextTool extends BaseTool {
   name = 'find_next';
-  description = 'Scroll to the next occurrence of the previous search string. Equivalent to finding the next match in a Ctrl+F search.';
+  description =
+    'Scroll to the next occurrence of the previous search string. Equivalent to finding the next match in a Ctrl+F search.';
   schema = z.object({});
 
   async execute(args: {}, abortSignal?: AbortSignal): Promise<string> {
@@ -171,19 +199,24 @@ export class FindNextTool extends BaseTool {
     try {
       const browser = getBrowser();
       const response = browser.findNext();
-      
+
       if (abortSignal?.aborted) {
         throw new Error('Operation was aborted');
       }
-      
+
       if (!response) {
         const header = `Address: ${browser.address}\n`;
-        return header + '=======================\nNo more matches found or no previous search was performed.';
+        return (
+          header +
+          '=======================\nNo more matches found or no previous search was performed.'
+        );
       }
-      
+
       return formatBrowserResponse(response);
     } catch (error) {
-      throw new Error(`Failed to find next: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to find next: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 }
@@ -193,43 +226,54 @@ export class FindNextTool extends BaseTool {
  */
 export class WebSearchTool extends BaseTool {
   name = 'web_search';
-  description = 'Perform a web search and return search results. Note: This is a simplified implementation that would need proper search API integration.';
+  description =
+    'Perform a web search and return search results. Note: This is a simplified implementation that would need proper search API integration.';
   schema = z.object({
     query: z.string().describe('The search query to perform'),
-    max_results: z.number().int().positive().max(10).default(3).describe('Maximum number of results to return')
+    max_results: z
+      .number()
+      .int()
+      .positive()
+      .max(10)
+      .default(3)
+      .describe('Maximum number of results to return'),
   });
 
-  async execute(args: { query: string; max_results?: number }, abortSignal?: AbortSignal): Promise<string> {
+  async execute(
+    args: { query: string; max_results?: number },
+    abortSignal?: AbortSignal
+  ): Promise<string> {
     if (abortSignal?.aborted) {
       throw new Error('Operation was aborted');
     }
 
     const { query, max_results = 3 } = this.validateArgs(args);
-    
+
     // Note: This is a placeholder implementation
     // In a real implementation, you would integrate with:
     // - Google Search API
     // - DuckDuckGo API
     // - SerpAPI
     // - Or other search services
-    
+
     const mockResults = [
       {
         title: `Search results for: ${query}`,
         url: `https://example.com/search?q=${encodeURIComponent(query)}`,
-        description: 'This is a placeholder implementation. To enable real web search, integrate with a search API like Google Search API, SerpAPI, or DuckDuckGo API.'
-      }
+        description:
+          'This is a placeholder implementation. To enable real web search, integrate with a search API like Google Search API, SerpAPI, or DuckDuckGo API.',
+      },
     ];
-    
+
     let content = `A web search for '${query}' found ${mockResults.length} results:\n\n## Web Results\n`;
-    
+
     mockResults.slice(0, max_results).forEach((result, index) => {
       content += `${index + 1}. [${result.title}](${result.url})\n`;
       if (result.description) {
         content += `${result.description}\n\n`;
       }
     });
-    
+
     return content.trim();
   }
 }
@@ -243,7 +287,7 @@ export const browserTools = [
   new PageUpTool(),
   new FindOnPageTool(),
   new FindNextTool(),
-  new WebSearchTool()
+  new WebSearchTool(),
 ];
 
 /**

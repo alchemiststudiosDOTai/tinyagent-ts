@@ -22,33 +22,33 @@ export class ReActStateManager implements ReActState {
   }
 
   addThought(text: string): void {
-    this.steps.push({ 
-      type: 'thought', 
+    this.steps.push({
+      type: 'thought',
       text,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
   addAction(action: ActionStep): void {
     this.steps.push({
       ...action,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
   addObservation(text: string): void {
-    this.steps.push({ 
-      type: 'observation', 
+    this.steps.push({
+      type: 'observation',
       text,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
   addReflexion(text: string): void {
-    this.steps.push({ 
-      type: 'reflexion', 
+    this.steps.push({
+      type: 'reflexion',
       text,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -79,15 +79,15 @@ export class ReActStateManager implements ReActState {
    */
   toMessages(systemPrompt: string): LLMMessage[] {
     const msgs: LLMMessage[] = [];
-    
+
     if (systemPrompt) {
       msgs.push({ role: 'system', content: systemPrompt });
     }
-    
+
     if (this.task) {
       msgs.push({ role: 'user', content: this.task });
     }
-    
+
     for (const step of this.steps) {
       switch (step.type) {
         case 'thought':
@@ -104,7 +104,10 @@ export class ReActStateManager implements ReActState {
               content: `Action:\n\`\`\`ts\n${actionStep.text}\n\`\`\``,
             });
           } else {
-            const json = JSON.stringify({ tool: actionStep.tool, args: actionStep.args });
+            const json = JSON.stringify({
+              tool: actionStep.tool,
+              args: actionStep.args,
+            });
             msgs.push({ role: 'assistant', content: `Action: ${json}` });
           }
           break;
@@ -116,7 +119,7 @@ export class ReActStateManager implements ReActState {
           break;
       }
     }
-    
+
     return msgs;
   }
-} 
+}

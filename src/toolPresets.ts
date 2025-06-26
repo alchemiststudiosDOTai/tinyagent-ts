@@ -10,14 +10,7 @@ export const ToolPresets = {
     new DuckDuckGoSearchTool(),
     new UuidTool(),
   ],
-  basic: () => [
-    new FileTool(),
-    new UuidTool(),
-  ],
-  search: () => [
-    new FileTool(),
-    new UuidTool(),
-    new DuckDuckGoSearchTool(),
-  ],
+  basic: () => [new FileTool(), new UuidTool()],
+  search: () => [new FileTool(), new UuidTool(), new DuckDuckGoSearchTool()],
   none: () => [],
 };

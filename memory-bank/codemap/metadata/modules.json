@@ -1,0 +1,15 @@
+{
+  "./.prettierrc.js": {
+    "type": "impl",
+    "deps": [],
+    "description": ""
+  },
+  "./dist/agent.d.ts": {
+    "type": "interface",
+    "deps": [
+      "'reflect-metadata';",
+      "{"
+    ],
+    "description": ""
+  }
+}

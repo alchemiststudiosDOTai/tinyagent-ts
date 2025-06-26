@@ -19,7 +19,10 @@ export class UuidTool extends BaseTool {
   description = 'Generate a random UUID v4';
   schema = UuidToolSchema;
 
-  async execute(args: UuidToolArgs, abortSignal?: AbortSignal): Promise<string> {
+  async execute(
+    args: UuidToolArgs,
+    abortSignal?: AbortSignal
+  ): Promise<string> {
     if (abortSignal?.aborted) {
       throw new Error('Operation was aborted');
     }
@@ -29,4 +32,4 @@ export class UuidTool extends BaseTool {
 
     return randomUUID();
   }
-} 
+}

@@ -14,15 +14,12 @@ export const pythonExecTool: Tool = {
     'Run a Python-3 snippet and return its stdout. Use this when multi-step logic is easier in code.',
   schema: z.object({
     code: z.string().max(MAX_CODE, `code must be 4 ${MAX_CODE} chars`),
-    timeoutMs: z
-      .number()
-      .int()
-      .min(500)
-      .max(20_000)
-      .optional()
-      .default(5_000),
+    timeoutMs: z.number().int().min(500).max(20_000).optional().default(5_000),
   }),
-  async execute({ code, timeoutMs }: { code: string; timeoutMs: number }, abortSignal?: AbortSignal) {
+  async execute(
+    { code, timeoutMs }: { code: string; timeoutMs: number },
+    abortSignal?: AbortSignal
+  ) {
     const stubDir = path.join(__dirname, '..', 'python_stubs');
 
     const app = express();

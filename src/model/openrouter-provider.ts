@@ -1,4 +1,11 @@
-import { ModelProvider, LLMMessage, ModelConfig, ModelResponse, ModelError, ModelAbortError } from './types';
+import {
+  ModelProvider,
+  LLMMessage,
+  ModelConfig,
+  ModelResponse,
+  ModelError,
+  ModelAbortError,
+} from './types';
 
 /**
  * OpenRouter API response structure
@@ -39,7 +46,7 @@ export class OpenRouterProvider implements ModelProvider {
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${config.apiKey}`,
+          Authorization: `Bearer ${config.apiKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://github.com/yourusername/tinyagent-ts',
           'X-Title': 'TinyAgent-TS',
@@ -64,22 +71,24 @@ export class OpenRouterProvider implements ModelProvider {
         );
       }
 
-      const data = await response.json() as OpenRouterResponse;
+      const data = (await response.json()) as OpenRouterResponse;
       const content = data.choices[0]?.message?.content?.trim() ?? '';
 
       return {
         content,
-        usage: data.usage ? {
-          promptTokens: data.usage.prompt_tokens,
-          completionTokens: data.usage.completion_tokens,
-          totalTokens: data.usage.total_tokens,
-        } : undefined,
+        usage: data.usage
+          ? {
+              promptTokens: data.usage.prompt_tokens,
+              completionTokens: data.usage.completion_tokens,
+              totalTokens: data.usage.total_tokens,
+            }
+          : undefined,
       };
     } catch (error) {
       if (error instanceof ModelError) {
         throw error;
       }
-      
+
       if (error instanceof Error && error.name === 'AbortError') {
         throw new ModelAbortError();
       }
@@ -89,4 +98,4 @@ export class OpenRouterProvider implements ModelProvider {
       );
     }
   }
-} 
+}

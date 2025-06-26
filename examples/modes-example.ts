@@ -13,7 +13,7 @@ async function main() {
   console.log('1. SIMPLE MODE (Direct LLM Response)');
   const simpleAgent = new Agent({
     model: { name: 'google/gemini-2.5-flash-preview-05-20' },
-    mode: 'simple'
+    mode: 'simple',
   });
 
   try {
@@ -28,17 +28,22 @@ async function main() {
   console.log('2. REACT MODE (Reasoning + Tool Execution)');
   const reactAgent = new Agent({
     model: { name: 'google/gemini-2.5-flash-preview-05-20' },
-    mode: 'react'
+    mode: 'react',
   });
 
   // Register tools for ReAct mode
   // Note: final_answer tool is automatically registered by the agent
   const tools = getDefaultTools();
-  tools.forEach(tool => reactAgent.registerTool(tool));
+  tools.forEach((tool) => reactAgent.registerTool(tool));
 
   try {
-    const react = await reactAgent.execute('Generate a UUID and tell me what it looks like. Use the final_answer tool to provide your response.');
-    console.log('Response:', react.data?.answer || react.data || 'No response received');
+    const react = await reactAgent.execute(
+      'Generate a UUID and tell me what it looks like. Use the final_answer tool to provide your response.'
+    );
+    console.log(
+      'Response:',
+      react.data?.answer || react.data || 'No response received'
+    );
     console.log('Steps taken:', react.metadata?.steps?.length || 0);
     console.log('');
   } catch (error) {
@@ -48,9 +53,12 @@ async function main() {
   // 3. Tool Discovery - List available capabilities
   console.log('3. TOOL DISCOVERY (Available Capabilities)');
   console.log('Available tools:');
-  reactAgent.getToolRegistry().getAll().forEach(tool => {
-    console.log(`  - ${tool.name}: ${tool.description}`);
-  });
+  reactAgent
+    .getToolRegistry()
+    .getAll()
+    .forEach((tool) => {
+      console.log(`  - ${tool.name}: ${tool.description}`);
+    });
 }
 
 main().catch(console.error);

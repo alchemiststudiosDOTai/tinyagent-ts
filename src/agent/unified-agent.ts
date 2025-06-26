@@ -2,7 +2,12 @@ import { ModelManager } from '../model';
 import { ReActEngine } from '../react';
 import { StandardToolRegistry, FinalAnswerTool, Tool } from '../tools';
 import { PromptEngine } from '../promptEngine';
-import { Agent, AgentConfig, AgentExecutionOptions, AgentResult } from './types';
+import {
+  Agent,
+  AgentConfig,
+  AgentExecutionOptions,
+  AgentResult,
+} from './types';
 
 /**
  * Unified agent implementation supporting multiple execution modes
@@ -52,7 +57,9 @@ export class UnifiedAgent implements Agent {
     this.reactEngine = new ReActEngine(this.modelManager);
     this.promptEngine = new PromptEngine(
       {},
-      this.config.systemPromptFile ? { agent: this.config.systemPromptFile } : {}
+      this.config.systemPromptFile
+        ? { agent: this.config.systemPromptFile }
+        : {}
     );
 
     // Register default tools
@@ -63,7 +70,7 @@ export class UnifiedAgent implements Agent {
     // Always register final answer tool
     const finalAnswerTool = new FinalAnswerTool();
     this.toolRegistry.register(finalAnswerTool);
-    
+
     // Register with ReAct engine
     this.reactEngine.registerTool({
       name: finalAnswerTool.name,
@@ -89,13 +96,13 @@ export class UnifiedAgent implements Agent {
         case 'simple':
           result = await this.executeSimple(input, options);
           break;
-        
+
         case 'react':
           const reactResult = await this.executeReAct(input, options);
           result = reactResult.finalAnswer;
           steps = reactResult.steps;
           break;
-        
+
         default:
           throw new Error(`Unknown agent mode: ${mode}`);
       }
@@ -127,8 +134,9 @@ export class UnifiedAgent implements Agent {
     input: string,
     options: AgentExecutionOptions
   ): Promise<any> {
-    const systemPrompt = options.systemPrompt || 
-      this.config.systemPrompt || 
+    const systemPrompt =
+      options.systemPrompt ||
+      this.config.systemPrompt ||
       this.promptEngine.render('simple', {});
 
     const messages = [
@@ -148,8 +156,9 @@ export class UnifiedAgent implements Agent {
     input: string,
     options: AgentExecutionOptions
   ): Promise<any> {
-    const systemPrompt = options.systemPrompt || 
-      this.config.systemPrompt || 
+    const systemPrompt =
+      options.systemPrompt ||
+      this.config.systemPrompt ||
       this.promptEngine.render('react', {
         tools: this.toolRegistry.getCatalog(),
       });
@@ -159,17 +168,11 @@ export class UnifiedAgent implements Agent {
       enableTrace: options.trace ?? this.config.react?.enableTrace,
     };
 
-    return await this.reactEngine.execute(
-      input,
-      systemPrompt,
-      reactConfig,
-      {
-        model: options.model,
-        abortSignal: options.abortSignal,
-      }
-    );
+    return await this.reactEngine.execute(input, systemPrompt, reactConfig, {
+      model: options.model,
+      abortSignal: options.abortSignal,
+    });
   }
-
 
   getConfig(): AgentConfig {
     return { ...this.config };
@@ -177,7 +180,7 @@ export class UnifiedAgent implements Agent {
 
   updateConfig(config: Partial<AgentConfig>): void {
     this.config = { ...this.config, ...config };
-    
+
     // Update model manager if model config changed
     if (config.model) {
       this.modelManager.updateConfig({
@@ -229,4 +232,4 @@ export class UnifiedAgent implements Agent {
       this.registerTool(tool);
     }
   }
-} 
+}

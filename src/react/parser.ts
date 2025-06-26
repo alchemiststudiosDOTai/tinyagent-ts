@@ -59,22 +59,22 @@ export function parseReActResponse(text: string): ParsedReActResponse {
   if (trimmed.startsWith('```')) {
     const codeMatch = trimmed.match(/```(?:\w+)?\n([\s\S]*?)```/);
     const code = codeMatch ? codeMatch[1].trim() : trimmed;
-    const action: ActionStep = { 
-      type: 'action', 
-      mode: 'code', 
+    const action: ActionStep = {
+      type: 'action',
+      mode: 'code',
       tool: 'code',
-      text: code 
+      text: code,
     };
     return { thought, action, reflexion };
   }
 
   // Final fallback: treat as code
   if (trimmed) {
-    const action: ActionStep = { 
-      type: 'action', 
-      mode: 'code', 
+    const action: ActionStep = {
+      type: 'action',
+      mode: 'code',
       tool: 'code',
-      text: trimmed 
+      text: trimmed,
     };
     return { thought, action, reflexion };
   }
@@ -85,7 +85,9 @@ export function parseReActResponse(text: string): ParsedReActResponse {
 /**
  * Extract tool name and arguments from action text
  */
-export function parseToolCall(actionText: string): { tool: string; args: Record<string, unknown> } | null {
+export function parseToolCall(
+  actionText: string
+): { tool: string; args: Record<string, unknown> } | null {
   try {
     // Try to parse as JSON
     if (actionText.startsWith('{') && actionText.endsWith('}')) {
@@ -108,4 +110,4 @@ export function parseToolCall(actionText: string): { tool: string; args: Record<
   }
 
   return null;
-} 
+}

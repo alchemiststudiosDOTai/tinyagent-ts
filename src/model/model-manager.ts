@@ -1,4 +1,10 @@
-import { ModelProvider, LLMMessage, ModelConfig, ModelResponse, ModelError } from './types';
+import {
+  ModelProvider,
+  LLMMessage,
+  ModelConfig,
+  ModelResponse,
+  ModelError,
+} from './types';
 import { OpenRouterProvider } from './openrouter-provider';
 
 /**
@@ -29,7 +35,9 @@ export class ModelManager {
     };
 
     if (!this.config.apiKey) {
-      throw new ModelError('API key is required. Set OPENROUTER_API_KEY environment variable or provide apiKey in config.');
+      throw new ModelError(
+        'API key is required. Set OPENROUTER_API_KEY environment variable or provide apiKey in config.'
+      );
     }
 
     // Register default providers
@@ -65,7 +73,7 @@ export class ModelManager {
   ): Promise<ModelResponse> {
     const providerName = options.provider || this.config.defaultProvider;
     const provider = this.getProvider(providerName);
-    
+
     if (!provider) {
       throw new ModelError(`Unknown provider: ${providerName}`);
     }
@@ -84,11 +92,13 @@ export class ModelManager {
         return await provider.chat(messages, modelConfig, options.abortSignal);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        
+
         // Don't retry on abort or certain error types
-        if (lastError.name === 'ModelAbortError' || 
-            lastError.name === 'AbortError' ||
-            (error instanceof ModelError && error.statusCode === 401)) {
+        if (
+          lastError.name === 'ModelAbortError' ||
+          lastError.name === 'AbortError' ||
+          (error instanceof ModelError && error.statusCode === 401)
+        ) {
           throw lastError;
         }
 
@@ -99,7 +109,9 @@ export class ModelManager {
 
         // Wait before retrying
         if (this.config.retryDelay > 0) {
-          await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
+          await new Promise((resolve) =>
+            setTimeout(resolve, this.config.retryDelay)
+          );
         }
       }
     }
@@ -120,4 +132,4 @@ export class ModelManager {
   getConfig(): ModelManagerConfig {
     return { ...this.config };
   }
-} 
+}

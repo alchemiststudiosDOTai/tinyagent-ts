@@ -6,7 +6,10 @@ import { BaseTool } from './types';
  * Schema for human loop operations
  */
 export const HumanLoopToolSchema = z.object({
-  prompt: z.string().default('Need input:').describe('The prompt to show to the human operator'),
+  prompt: z
+    .string()
+    .default('Need input:')
+    .describe('The prompt to show to the human operator'),
 });
 
 export type HumanLoopToolArgs = z.infer<typeof HumanLoopToolSchema>;
@@ -19,7 +22,10 @@ export class HumanLoopTool extends BaseTool {
   description = 'Pause and ask the human operator for guidance or input';
   schema = HumanLoopToolSchema;
 
-  async execute(args: HumanLoopToolArgs, abortSignal?: AbortSignal): Promise<string> {
+  async execute(
+    args: HumanLoopToolArgs,
+    abortSignal?: AbortSignal
+  ): Promise<string> {
     if (abortSignal?.aborted) {
       throw new Error('Operation was aborted');
     }
@@ -54,4 +60,4 @@ export class HumanLoopTool extends BaseTool {
       });
     });
   }
-} 
+}

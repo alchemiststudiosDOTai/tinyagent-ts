@@ -15,11 +15,11 @@ export type FinalAnswerArgs = z.infer<typeof FinalAnswerSchema>;
  */
 export class FinalAnswerTool extends BaseTool {
   name = 'final_answer';
-  description = 'Provide the final answer to the user\'s question or task';
+  description = "Provide the final answer to the user's question or task";
   schema = FinalAnswerSchema;
 
   async execute(args: FinalAnswerArgs): Promise<FinalAnswerArgs> {
     const validated = this.validateArgs(args);
     return validated;
   }
-} 
+}

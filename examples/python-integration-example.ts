@@ -9,7 +9,7 @@ async function main() {
     mode: 'react',
   });
   // Register default tools, including Python
-  getDefaultTools().forEach(tool => agent.registerTool(tool));
+  getDefaultTools().forEach((tool) => agent.registerTool(tool));
 
   const task = `Given the list [1, 2, 3, 4, 5], filter even numbers using Python, then sum them and print the result as JSON.`;
   console.log('Agent assigned:', task);

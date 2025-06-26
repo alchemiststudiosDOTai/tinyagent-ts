@@ -1,5 +1,8 @@
 import { Tool, ToolRegistry, ToolMetadata } from './types';
-import { formatZodSchemaForPrompt, extractZodSchemaExamples } from '../utils/schema-formatter';
+import {
+  formatZodSchemaForPrompt,
+  extractZodSchemaExamples,
+} from '../utils/schema-formatter';
 
 /**
  * Standard implementation of the tool registry
@@ -12,7 +15,7 @@ export class StandardToolRegistry implements ToolRegistry {
     if (this.tools.has(tool.name)) {
       throw new Error(`Tool with name '${tool.name}' is already registered`);
     }
-    
+
     this.tools.set(tool.name, tool);
     this.metadata.set(tool.name, {
       name: tool.name,
@@ -70,14 +73,14 @@ export class StandardToolRegistry implements ToolRegistry {
    */
   registerWithMetadata(tool: Tool, metadata: Partial<ToolMetadata>): void {
     this.register(tool);
-    
+
     const fullMetadata: ToolMetadata = {
       name: tool.name,
       description: tool.description,
       schema: tool.schema,
       ...metadata,
     };
-    
+
     this.metadata.set(tool.name, fullMetadata);
   }
 
@@ -99,13 +102,14 @@ export class StandardToolRegistry implements ToolRegistry {
    */
   getCatalog(): string {
     return this.getAll()
-      .map(tool => {
+      .map((tool) => {
         const schemaStr = formatZodSchemaForPrompt(tool.schema);
         const examples = extractZodSchemaExamples(tool.schema);
-        const exampleStr = Object.keys(examples).length > 0 
-          ? ` Example: ${JSON.stringify(examples)}`
-          : '';
-        
+        const exampleStr =
+          Object.keys(examples).length > 0
+            ? ` Example: ${JSON.stringify(examples)}`
+            : '';
+
         return `- ${tool.name}(${schemaStr}): ${tool.description}${exampleStr}`;
       })
       .join('\n');
@@ -116,18 +120,18 @@ export class StandardToolRegistry implements ToolRegistry {
    */
   getDetailedCatalog(): string {
     return this.getAll()
-      .map(tool => {
+      .map((tool) => {
         const schemaStr = formatZodSchemaForPrompt(tool.schema);
         const examples = extractZodSchemaExamples(tool.schema);
-        
+
         let result = `## ${tool.name}\n`;
         result += `**Description:** ${tool.description}\n`;
         result += `**Parameters:** ${schemaStr}\n`;
-        
+
         if (Object.keys(examples).length > 0) {
           result += `**Example Usage:** \`${tool.name}(${JSON.stringify(examples)})\`\n`;
         }
-        
+
         return result;
       })
       .join('\n\n');
@@ -138,7 +142,7 @@ export class StandardToolRegistry implements ToolRegistry {
    */
   getLegacyCatalog(): string {
     return this.getAll()
-      .map(tool => `- ${tool.name}: ${tool.description}`)
+      .map((tool) => `- ${tool.name}: ${tool.description}`)
       .join('\n');
   }
 
@@ -156,4 +160,4 @@ export class StandardToolRegistry implements ToolRegistry {
   size(): number {
     return this.tools.size;
   }
-} 
+}

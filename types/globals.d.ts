@@ -5,8 +5,17 @@ declare var require: any;
 declare var module: any;
 
 declare namespace Reflect {
-  function getMetadata(key: any, target: any, propertyKey?: string | symbol): any;
-  function defineMetadata(key: any, value: any, target: any, propertyKey?: string | symbol): void;
+  function getMetadata(
+    key: any,
+    target: any,
+    propertyKey?: string | symbol
+  ): any;
+  function defineMetadata(
+    key: any,
+    value: any,
+    target: any,
+    propertyKey?: string | symbol
+  ): void;
 }
 
 declare module 'reflect-metadata';

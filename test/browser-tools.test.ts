@@ -1,4 +1,10 @@
-import { VisitPageTool, PageDownTool, PageUpTool, FindOnPageTool, FindNextTool } from '../src/tools/browser-tools';
+import {
+  VisitPageTool,
+  PageDownTool,
+  PageUpTool,
+  FindOnPageTool,
+  FindNextTool,
+} from '../src/tools/browser-tools';
 import { SimpleTextBrowser } from '../src/tools/text-browser';
 
 describe('Browser Tools', () => {
@@ -24,7 +30,9 @@ describe('Browser Tools', () => {
     });
 
     it('should validate arguments', () => {
-      expect(() => visitTool.validateArgs({ url: 'https://example.com' })).not.toThrow();
+      expect(() =>
+        visitTool.validateArgs({ url: 'https://example.com' })
+      ).not.toThrow();
       expect(() => visitTool.validateArgs({})).toThrow();
       expect(() => visitTool.validateArgs({ url: 123 })).toThrow();
     });
@@ -32,9 +40,10 @@ describe('Browser Tools', () => {
     it('should handle abort signals', async () => {
       const controller = new AbortController();
       controller.abort();
-      
-      await expect(visitTool.execute({ url: 'https://example.com' }, controller.signal))
-        .rejects.toThrow('Operation was aborted');
+
+      await expect(
+        visitTool.execute({ url: 'https://example.com' }, controller.signal)
+      ).rejects.toThrow('Operation was aborted');
     });
 
     it('should visit example.com in live mode', async () => {
@@ -44,7 +53,7 @@ describe('Browser Tools', () => {
       }
 
       const result = await visitTool.execute({ url: 'https://example.com' });
-      
+
       expect(result).toContain('Address: https://example.com');
       expect(result).toContain('=======================');
       expect(result).toContain('Example Domain');
@@ -71,39 +80,40 @@ describe('Browser Tools', () => {
 
     it('should split content into viewports correctly', async () => {
       const testBrowser = new SimpleTextBrowser({ viewportSize: 100 });
-      
+
       // Set content manually for testing
       const longContent = 'A'.repeat(250) + ' ' + 'B'.repeat(250);
       await testBrowser.setAddress('about:blank');
-      
+
       // Access private method through type assertion for testing
       (testBrowser as any).setPageContent(longContent);
-      
+
       expect(testBrowser.viewport.length).toBeLessThanOrEqual(110); // Slightly more than viewport size due to word boundaries
     });
 
     it('should navigate viewports', async () => {
       const testBrowser = new SimpleTextBrowser({ viewportSize: 10 });
-      
+
       // Set longer content
       const content = 'Page one content. Page two content. Page three content.';
       (testBrowser as any).setPageContent(content);
-      
+
       const initialViewport = testBrowser.viewport;
       const downResult = testBrowser.pageDown();
       expect(downResult.viewport).not.toBe(initialViewport);
-      
+
       const upResult = testBrowser.pageUp();
       expect(upResult.viewport).toBe(initialViewport);
     });
 
     it('should find text on page', async () => {
       const testBrowser = new SimpleTextBrowser();
-      
+
       // Set content with searchable text
-      const content = 'This is the first paragraph. This contains the target word "example". This is the last paragraph.';
+      const content =
+        'This is the first paragraph. This contains the target word "example". This is the last paragraph.';
       (testBrowser as any).setPageContent(content);
-      
+
       const findResult = testBrowser.findOnPage('example');
       expect(findResult).not.toBeNull();
       expect(findResult?.viewport).toContain('example');
@@ -111,20 +121,20 @@ describe('Browser Tools', () => {
 
     it('should handle search not found', async () => {
       const testBrowser = new SimpleTextBrowser();
-      
+
       const content = 'This content does not contain the search term.';
       (testBrowser as any).setPageContent(content);
-      
+
       const findResult = testBrowser.findOnPage('nonexistent');
       expect(findResult).toBeNull();
     });
 
     it('should support wildcard search', async () => {
       const testBrowser = new SimpleTextBrowser();
-      
+
       const content = 'Testing wildcard functionality with different patterns.';
       (testBrowser as any).setPageContent(content);
-      
+
       const findResult = testBrowser.findOnPage('wild*card');
       expect(findResult).not.toBeNull();
     });
@@ -132,13 +142,13 @@ describe('Browser Tools', () => {
     it('should track visit history', async () => {
       await browser.setAddress('https://example1.com');
       await browser.setAddress('https://example2.com');
-      
+
       expect(browser.address).toBe('https://example2.com');
-      
+
       // Visit first URL again
       await browser.setAddress('https://example1.com');
       const state = browser.visitPage('https://example1.com');
-      
+
       // Should indicate previous visit
       // Note: This test checks the structure; actual visit detection depends on implementation
       expect(browser.address).toBe('https://example1.com');
@@ -173,7 +183,9 @@ describe('Browser Tools', () => {
     });
 
     it('should validate search string argument', () => {
-      expect(() => findTool.validateArgs({ search_string: 'test' })).not.toThrow();
+      expect(() =>
+        findTool.validateArgs({ search_string: 'test' })
+      ).not.toThrow();
       expect(() => findTool.validateArgs({})).toThrow();
       expect(() => findTool.validateArgs({ search_string: 123 })).toThrow();
     });
@@ -194,7 +206,9 @@ describe('Browser Tools', () => {
       }
 
       // 1. Visit a page
-      const visitResult = await visitTool.execute({ url: 'https://example.com' });
+      const visitResult = await visitTool.execute({
+        url: 'https://example.com',
+      });
       expect(visitResult).toContain('Address: https://example.com');
 
       // 2. Try to scroll down (may not have effect on simple pages)
@@ -204,7 +218,6 @@ describe('Browser Tools', () => {
       // 3. Search for common text
       const searchResult = await findTool.execute({ search_string: 'Example' });
       expect(searchResult).toContain('Address: https://example.com');
-
     }, 30000);
   });
 });

@@ -1,2 +1,2 @@
 export * from './types';
-export * from './unified-agent'; 
+export * from './unified-agent';

@@ -6,13 +6,13 @@ import { z } from 'zod';
 export interface Tool {
   /** Unique name for the tool */
   name: string;
-  
+
   /** Human-readable description of what the tool does */
   description: string;
-  
+
   /** Zod schema for validating tool arguments */
   schema: z.ZodSchema<any>;
-  
+
   /**
    * Execute the tool with the given arguments
    * @param args - Validated arguments for the tool
@@ -69,27 +69,27 @@ export interface ToolRegistry {
    * Register a tool
    */
   register(tool: Tool): void;
-  
+
   /**
    * Unregister a tool
    */
   unregister(name: string): void;
-  
+
   /**
    * Get a tool by name
    */
   get(name: string): Tool | undefined;
-  
+
   /**
    * Get all registered tools
    */
   getAll(): Tool[];
-  
+
   /**
    * Get tools by category
    */
   getByCategory(category: string): Tool[];
-  
+
   /**
    * Check if a tool is registered
    */
@@ -103,16 +103,16 @@ export abstract class BaseTool implements Tool {
   abstract name: string;
   abstract description: string;
   abstract schema: z.ZodSchema<any>;
-  
+
   abstract execute(args: any, abortSignal?: AbortSignal): Promise<any>;
-  
+
   /**
    * Validate arguments against the tool's schema
    */
   protected validateArgs(args: any): any {
     return this.schema.parse(args);
   }
-  
+
   /**
    * Create a successful result
    */
@@ -123,7 +123,7 @@ export abstract class BaseTool implements Tool {
       metadata,
     };
   }
-  
+
   /**
    * Create an error result
    */
@@ -134,4 +134,4 @@ export abstract class BaseTool implements Tool {
       metadata,
     };
   }
-} 
+}

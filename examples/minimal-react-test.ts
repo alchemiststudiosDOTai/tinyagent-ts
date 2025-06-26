@@ -16,24 +16,25 @@ async function main() {
       maxSteps: 5,
       enableTrace: true, // Enable trace to see what's happening
       enableReflexion: false,
-    }
+    },
   });
 
   // Register tools
   const tools = getDefaultTools();
-  tools.forEach(tool => agent.registerTool(tool));
+  tools.forEach((tool) => agent.registerTool(tool));
 
   try {
-    const result = await agent.execute('Generate a UUID and tell me what it is. Use the final_answer tool to provide your response.');
-    
+    const result = await agent.execute(
+      'Generate a UUID and tell me what it is. Use the final_answer tool to provide your response.'
+    );
+
     console.log('\n=== FINAL RESULT ===');
     console.log('Success:', result.success);
     console.log('Data:', JSON.stringify(result.data, null, 2));
     console.log('Steps:', result.metadata?.steps?.length);
-    
   } catch (error) {
     console.error('Error:', error);
   }
 }
 
-main().catch(console.error); 
+main().catch(console.error);

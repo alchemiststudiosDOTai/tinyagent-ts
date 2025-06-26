@@ -15,24 +15,24 @@ function copyPromptTemplates() {
       // Create the directory structure
       const sourceDir = path.join(__dirname, 'src', 'core', 'prompts');
       const destDir = path.join(__dirname, 'dist', 'core', 'prompts');
-      
+
       // Create the destination directory if it doesn't exist
       if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true });
       }
-      
+
       // Copy files recursively
       function copyDir(src, dest) {
         if (!fs.existsSync(dest)) {
           fs.mkdirSync(dest, { recursive: true });
         }
-        
+
         const entries = fs.readdirSync(src, { withFileTypes: true });
-        
+
         for (const entry of entries) {
           const srcPath = path.join(src, entry.name);
           const destPath = path.join(dest, entry.name);
-          
+
           if (entry.isDirectory()) {
             copyDir(srcPath, destPath);
           } else {
@@ -40,10 +40,10 @@ function copyPromptTemplates() {
           }
         }
       }
-      
+
       copyDir(sourceDir, destDir);
       console.log('Prompt templates copied to dist directory');
-    }
+    },
   };
 }
 

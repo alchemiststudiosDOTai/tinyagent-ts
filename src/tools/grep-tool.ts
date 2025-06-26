@@ -8,7 +8,10 @@ import { BaseTool } from './types';
 export const GrepToolSchema = z.object({
   pattern: z.string().describe('The pattern to search for'),
   file: z.string().describe('The file to search in'),
-  flags: z.string().optional().describe('Additional grep flags (e.g., -i for case insensitive)'),
+  flags: z
+    .string()
+    .optional()
+    .describe('Additional grep flags (e.g., -i for case insensitive)'),
 });
 
 export type GrepToolArgs = z.infer<typeof GrepToolSchema>;
@@ -21,7 +24,10 @@ export class GrepTool extends BaseTool {
   description = 'Search for a pattern in a file using grep';
   schema = GrepToolSchema;
 
-  async execute(args: GrepToolArgs, abortSignal?: AbortSignal): Promise<string> {
+  async execute(
+    args: GrepToolArgs,
+    abortSignal?: AbortSignal
+  ): Promise<string> {
     if (abortSignal?.aborted) {
       throw new Error('Operation was aborted');
     }
@@ -62,4 +68,4 @@ export class GrepTool extends BaseTool {
       }
     });
   }
-} 
+}
